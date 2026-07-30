@@ -142,12 +142,21 @@ export function buildDynamicMessages(
   userMessage: string,
   imagesBase64: string[] = []
 ): any[] {
+  // Sanitize history so extra internal properties (e.g. 'id', 'timestamp') are stripped.
+  // Strict API validation (such as Groq's API) returns 400 if unsupported fields like 'id' are present.
+  const sanitizedHistory = (history || [])
+    .filter((msg) => msg && msg.role && msg.content)
+    .map((msg) => ({
+      role: msg.role,
+      content: typeof msg.content === "string" ? msg.content : String(msg.content),
+    }));
+
   const userMessageTemplateIndex = messagesTemplate.findIndex((m) =>
     JSON.stringify(m).includes("{{TEXT}}")
   );
 
   if (userMessageTemplateIndex === -1) {
-    return [...history, { role: "user", content: userMessage }]; // Fallback
+    return [...sanitizedHistory, { role: "user", content: userMessage }]; // Fallback
   }
 
   const prefixMessages = messagesTemplate.slice(0, userMessageTemplateIndex);
@@ -160,7 +169,7 @@ export function buildDynamicMessages(
     imagesBase64
   );
 
-  return [...prefixMessages, ...history, newUserMessage, ...suffixMessages];
+  return [...prefixMessages, ...sanitizedHistory, newUserMessage, ...suffixMessages];
 }
 
 /**

@@ -116,10 +116,10 @@ export const AI_PROVIDERS = [
   {
     id: "groq",
     name: "Groq",
-    defaultModel: "llama-3.3-70b-versatile",
+    defaultModel: "llama-3.1-8b-instant",
     models: [
-      "llama-3.3-70b-versatile",
       "llama-3.1-8b-instant",
+      "llama-3.3-70b-versatile",
       "llama-3.3-70b-specdec",
       "deepseek-r1-distill-llama-70b",
       "qwen-2.5-coder-32b",
@@ -134,10 +134,9 @@ export const AI_PROVIDERS = [
       "model": "{{MODEL}}",
       "messages": [{"role": "system", "content": "{{SYSTEM_PROMPT}}"}, {"role": "user", "content": [{"type": "text", "text": "{{TEXT}}"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64,{{IMAGE}}"}}]}],
       "temperature": 1,
-      "max_completion_tokens": 8192,
+      "max_completion_tokens": 4096,
       "top_p": 1,
       "stream": true,
-      "reasoning_effort": "medium",
       "stop": null
     }'`,
     responseContentPath: "choices[0].message.content",

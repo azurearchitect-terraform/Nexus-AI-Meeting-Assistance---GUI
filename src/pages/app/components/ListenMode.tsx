@@ -16,7 +16,6 @@ import {
   PauseIcon,
   ChevronDownIcon,
   SparklesIcon,
-  ChevronUpIcon,
   MicIcon,
   Loader2,
   Trash2Icon,
@@ -213,11 +212,11 @@ ${messagesContent}`;
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden p-4">
-      {/* Profiles / Settings Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-border/50">
-        <div className="flex items-center gap-2">
+      {/* Profiles / Settings / Control Header (Fixed & Locked) */}
+      <div className="flex flex-wrap items-center justify-between pb-3 border-b border-border/50 gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
           <Select value={activeProfile} onValueChange={setActiveProfile}>
-            <SelectTrigger className="w-[200px] h-8 text-xs bg-muted border-none rounded-full focus:ring-0">
+            <SelectTrigger className="w-[180px] h-8 text-xs bg-muted border-none rounded-full focus:ring-0 shrink-0">
               <SelectValue placeholder="Select Mode" />
             </SelectTrigger>
             <SelectContent>
@@ -241,25 +240,13 @@ ${messagesContent}`;
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap pl-4">
-          <div className={`h-2 w-2 rounded-full ${capturing ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
-          {capturing ? "listening" : "standby"}
-        </div>
-      </div>
 
-      {/* Transcript Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto py-4 pr-2 space-y-4 relative">
-        <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground tracking-widest sticky top-0 z-20 bg-background/95 backdrop-blur py-2 border-b border-border/10">
-          <div className="flex items-center gap-2">
-            <MicIcon className={`h-4 w-4 ${capturing ? "text-green-500" : "text-muted-foreground"}`} />
-            <span>TRANSCRIPT · CURRENT THREAD</span>
-          </div>
-          <div className="flex items-center gap-2">
+          {/* Locked Control Toolbar (Next to Auto Dynamic Routing) */}
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-6 w-6 rounded-full text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+              className="h-7 w-7 rounded-full text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
               onClick={handleSummarizeMeeting}
               title="Summarize Meeting"
             >
@@ -268,7 +255,7 @@ ${messagesContent}`;
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-6 w-6 rounded-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
+              className="h-7 w-7 rounded-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
               onClick={() => {
                 if (window.confirm("Are you sure you want to clear the conversation?")) {
                   clearConversation();
@@ -278,10 +265,10 @@ ${messagesContent}`;
             >
               <Trash2Icon className="h-4 w-4" />
             </Button>
-            
+
             <Select value={textColor} onValueChange={setTextColor}>
-              <SelectTrigger className="h-6 w-[100px] text-[10px] rounded-full border-border/50 focus:ring-0">
-                <SelectValue placeholder="Text Color" />
+              <SelectTrigger className="h-7 w-[95px] text-[10px] rounded-full border-border/50 focus:ring-0">
+                <SelectValue placeholder="Color" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -301,141 +288,156 @@ ${messagesContent}`;
             <Button 
               variant={capturing ? "default" : "ghost"} 
               size="sm" 
-              className={`h-6 rounded-full px-2 text-xs ${capturing ? "bg-green-500 hover:bg-green-600 text-white" : "border border-border/50"}`}
+              className={`h-7 rounded-full px-2.5 text-xs ${capturing ? "bg-green-500 hover:bg-green-600 text-white" : "border border-border/50"}`}
               onClick={capturing ? stopCapture : startCapture}
             >
-              <div className={`h-2 w-2 rounded-full ${capturing ? "bg-white animate-pulse" : "bg-muted-foreground"} mr-1`} />
+              <div className={`h-2 w-2 rounded-full ${capturing ? "bg-white animate-pulse" : "bg-muted-foreground"} mr-1.5`} />
               {capturing ? "Stop Listening" : "System Audio"}
             </Button>
-            {usedLocalKnowledge && (
-              <div className="ml-2 px-2 py-0.5 text-[10px] rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center shadow-sm">
-                📚 Local Knowledge Used
-              </div>
-            )}
-            <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto rounded-full">
-              <ChevronUpIcon className="h-4 w-4" />
-            </Button>
-            {activeProfile === "auto" && activePersonaName && (
-              <div className="ml-2 px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center shadow-sm">
-                <SparklesIcon className="w-3 h-3 mr-1" />
-                {activePersonaName}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-2 md:mt-0">
 
             <Button
               variant={isTestMicEnabled ? "default" : "outline"}
               size="sm"
-              className={`h-6 text-[10px] rounded-full border-border/50 ${isTestMicEnabled ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-muted-foreground'}`}
+              className={`h-7 text-[10px] rounded-full border-border/50 ${isTestMicEnabled ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-muted-foreground'}`}
               onClick={() => setIsTestMicEnabled(!isTestMicEnabled)}
               title="Enable fallback microphone capture (for testing if system audio fails)"
             >
               {isTestMicEnabled ? <MicIcon className="h-3 w-3 mr-1" /> : <MicOff className="h-3 w-3 mr-1" />}
               Mic {isTestMicEnabled ? "ON" : "OFF"}
             </Button>
+
+            {usedLocalKnowledge && (
+              <div className="px-2 py-0.5 text-[10px] rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center shadow-sm">
+                📚 Local Knowledge Used
+              </div>
+            )}
+            {activeProfile === "auto" && activePersonaName && (
+              <div className="px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center shadow-sm">
+                <SparklesIcon className="w-3 h-3 mr-1" />
+                {activePersonaName}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="space-y-4 pt-2">
-          {isAPIKeyMissing && (
-            <div className="flex gap-4 group p-3 mb-4 border border-amber-500/20 bg-amber-500/5 rounded-lg text-amber-500">
-              <div className="flex-1">
-                <span className="font-semibold text-sm mr-2 block mb-1">Offline Mode</span>
-                <p className="inline text-xs leading-relaxed">
-                  API Key is missing. System will automatically search your scanned offline documents for answers instead of using cloud AI.
-                </p>
-              </div>
-            </div>
-          )}
-          {conversation.messages.filter((msg: any) => msg.role === "user").length > 0 ? (
-            [...conversation.messages]
-              .filter((msg: any) => msg.role === "user")
-              .map((msg: any, index, arr) => {
-                const isLast = index === arr.length - 1;
-                const timeStr = new Date(msg.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                });
-                return (
-                  <div key={msg.id || index} className="flex flex-col">
-                    <div className="flex gap-4 group">
-                      <span className="text-muted-foreground text-sm font-mono w-12 pt-1">
-                        {timeStr}
-                      </span>
-                      <div className="flex-1">
-                        <span className="font-semibold text-sm text-foreground mr-2">
-                          {isLast ? "Current Question" : `Question ${index + 1}`}
-                        </span>
-                        <p className="text-foreground inline text-sm leading-relaxed">{msg.content}</p>
-                      </div>
-                    </div>
-                    {!isLast && <div className="h-[1px] bg-border/50 my-4" />}
-                  </div>
-                );
-              })
-          ) : lastTranscription ? (
-            <div className="flex flex-col">
-              <div className="flex gap-4 group">
-                <span className="text-muted-foreground text-sm font-mono w-12 pt-1">Now</span>
-                <div className="flex-1">
-                  <span className="font-semibold text-sm text-foreground mr-2">Current Question</span>
-                  <p className="text-foreground inline text-sm leading-relaxed">{lastTranscription}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-4 group opacity-50">
-              <span className="text-muted-foreground text-sm font-mono w-12 pt-1">00:00</span>
-              <div className="flex-1">
-                <span className="font-semibold text-sm text-foreground mr-2">Speaker</span>
-                <p className="text-muted-foreground inline text-sm leading-relaxed">Waiting for transcription...</p>
-              </div>
-            </div>
-          )}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
+          <div className={`h-2 w-2 rounded-full ${capturing ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
+          {capturing ? "listening" : "standby"}
         </div>
       </div>
 
-      {/* Suggested Answer */}
-      <div className="border-t border-border/50 pt-4 flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <span className="text-xs font-semibold tracking-wider flex items-center gap-2">
-            SUGGESTED ANSWER
-            {(isAIProcessing || isProcessing) && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-          </span>
-          <span className="text-xs text-muted-foreground truncate"></span>
-          <div className="flex-1 h-[1px] bg-border/50" />
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex rounded-full border border-border/50 p-0.5">
-              <Button variant="secondary" size="sm" className="h-6 rounded-full px-3 text-xs">
-                <MessageCircleIcon className="h-3 w-3 mr-1" />
-                Latest
-              </Button>
+      {/* Main Content Area (Split 50/50 between Question Panel and Answer Panel) */}
+      <div className="flex-1 flex flex-col min-h-0 py-2 gap-3 overflow-hidden">
+        {/* Transcript / Question Panel */}
+        <div className="flex-[0.3] flex flex-col min-h-0 border-b border-border/40 pb-2 overflow-hidden">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground tracking-widest py-1 shrink-0">
+            <div className="flex items-center gap-2">
+              <MicIcon className={`h-3.5 w-3.5 ${capturing ? "text-green-500" : "text-muted-foreground"}`} />
+              <span>TRANSCRIPT · QUESTION PANEL</span>
             </div>
           </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pt-1 pr-1">
+            {isAPIKeyMissing && (
+              <div className="flex gap-4 group p-2.5 mb-2 border border-amber-500/20 bg-amber-500/5 rounded-lg text-amber-500">
+                <div className="flex-1">
+                  <span className="font-semibold text-xs mr-2 block mb-0.5">Offline Mode</span>
+                  <p className="inline text-xs leading-relaxed">
+                    API Key is missing. System will automatically search your scanned offline documents for answers instead of using cloud AI.
+                  </p>
+                </div>
+              </div>
+            )}
+            {conversation.messages.filter((msg: any) => msg.role === "user").length > 0 ? (
+              [...conversation.messages]
+                .filter((msg: any) => msg.role === "user")
+                .map((msg: any, index, arr) => {
+                  const isLast = index === arr.length - 1;
+                  const timeStr = new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  });
+                  return (
+                    <div key={msg.id || index} className="flex flex-col">
+                      <div className="flex gap-3 group">
+                        <span className="text-muted-foreground text-xs font-mono w-14 pt-0.5 shrink-0">
+                          {timeStr}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold text-xs text-foreground mr-2">
+                            {isLast ? "Current Question" : `Question ${index + 1}`}
+                          </span>
+                          <p className="text-foreground inline text-sm leading-relaxed">{msg.content}</p>
+                        </div>
+                      </div>
+                      {!isLast && <div className="h-[1px] bg-border/30 my-2" />}
+                    </div>
+                  );
+                })
+            ) : lastTranscription ? (
+              <div className="flex flex-col">
+                <div className="flex gap-3 group">
+                  <span className="text-muted-foreground text-xs font-mono w-14 pt-0.5 shrink-0">Now</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-xs text-foreground mr-2">Current Question</span>
+                    <p className="text-foreground inline text-sm leading-relaxed">{lastTranscription}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3 group opacity-50">
+                <span className="text-muted-foreground text-xs font-mono w-14 pt-0.5 shrink-0">00:00</span>
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-xs text-foreground mr-2">Speaker</span>
+                  <p className="text-muted-foreground inline text-sm leading-relaxed">Waiting for transcription...</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        
-        <div className="text-base text-foreground leading-relaxed max-h-[40vh] min-h-[60px] overflow-y-auto pr-2 flex flex-col gap-6">
-          {isAPIKeyMissing && conversation.messages.length === 0 && !lastAIResponse && (
-            <span className="text-amber-500 font-semibold text-sm opacity-80 mb-4 block">Searching in Offline Documents only.</span>
-          )}
+
+        {/* Suggested Answer Panel */}
+        <div className="flex-[0.7] flex flex-col min-h-0 overflow-hidden gap-2">
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs font-semibold tracking-wider flex items-center gap-2">
+              SUGGESTED ANSWER
+              {(isAIProcessing || isProcessing) && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+            </span>
+            <div className="flex-1 h-[1px] bg-border/40" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex rounded-full border border-border/50 p-0.5">
+                <Button variant="secondary" size="sm" className="h-5 rounded-full px-2.5 text-[10px]">
+                  <MessageCircleIcon className="h-3 w-3 mr-1" />
+                  Latest
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex-1 text-sm text-foreground leading-relaxed overflow-y-auto pr-1 flex flex-col gap-4">
+            {isAPIKeyMissing && conversation.messages.length === 0 && !lastAIResponse && (
+              <span className="text-amber-500 font-semibold text-xs opacity-80 mb-2 block">Searching in Offline Documents only.</span>
+            )}
             {conversation.messages.filter((msg: any) => msg.role === "assistant").map((msg: any, index: number) => (
-              <div key={msg.id || index} className="pb-4 border-b border-border/10 last:border-0 last:pb-0" style={{ color: textColor !== 'inherit' ? textColor : undefined }}>
+              <div key={msg.id || index} className="pb-3 border-b border-border/10 last:border-0 last:pb-0" style={{ color: textColor !== 'inherit' ? textColor : undefined }}>
                 <Markdown>{msg.content}</Markdown>
               </div>
             ))}
             {isAIProcessing && lastAIResponse && (
-              <div className="pb-4 border-b border-border/10 last:border-0 last:pb-0" style={{ color: textColor !== 'inherit' ? textColor : undefined }}>
+              <div className="pb-3 border-b border-border/10 last:border-0 last:pb-0" style={{ color: textColor !== 'inherit' ? textColor : undefined }}>
                 <Markdown isStreaming={isAIProcessing}>{lastAIResponse}</Markdown>
               </div>
             )}
-          {(!isAIProcessing && !lastAIResponse && conversation.messages.filter((msg: any) => msg.role === "assistant").length === 0) && (
-            <span className="text-muted-foreground opacity-50">AI will suggest answers here based on the transcript...</span>
-          )}
-        </div>
+            {(!isAIProcessing && !lastAIResponse && conversation.messages.filter((msg: any) => msg.role === "assistant").length === 0) && (
+              <span className="text-muted-foreground opacity-50 text-xs">AI will suggest answers here based on the transcript...</span>
+            )}
+          </div>
 
-        <FollowUpPills items={FOLLOW_UPS} onSelect={handleFollowUpSelect} />
+          <div className="shrink-0">
+            <FollowUpPills items={FOLLOW_UPS} onSelect={handleFollowUpSelect} />
+          </div>
+        </div>
       </div>
 
       <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>

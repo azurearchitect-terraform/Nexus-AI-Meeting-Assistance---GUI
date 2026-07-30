@@ -46,8 +46,8 @@ export const SPEECH_TO_TEXT_PROVIDERS = [
   {
     id: "groq",
     name: "Groq Whisper",
-    defaultModel: "whisper-large-v3",
-    models: ["whisper-large-v3", "distil-whisper-large-v3-en", "whisper-large-v3-turbo"],
+    defaultModel: "distil-whisper-large-v3-en",
+    models: ["distil-whisper-large-v3-en", "whisper-large-v3-turbo", "whisper-large-v3"],
     curl: `curl -X POST https://api.groq.com/openai/v1/audio/transcriptions \\
       -H "Authorization: bearer {{API_KEY}}" \\
       -F "file={{AUDIO}}" \\

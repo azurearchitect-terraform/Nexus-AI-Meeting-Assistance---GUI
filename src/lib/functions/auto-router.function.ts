@@ -14,7 +14,7 @@ const OPENAI_PROVIDER_ID = "openai";
 
 // Cheapest / fastest Gemini model that is currently live
 const GEMINI_CHEAP_MODEL = "gemini-3.5-flash-lite";
-const GROQ_FAST_MODEL    = "llama-3.3-70b-versatile";
+const GROQ_FAST_MODEL    = "llama-3.1-8b-instant";
 const OPENAI_SMART_MODEL = "gpt-4o";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
