@@ -6,7 +6,11 @@ import {
 } from "@/config";
 import { getPlatform, safeLocalStorage, trackAppStart } from "@/lib";
 import { getShortcutsConfig } from "@/lib/storage";
-import { persistProviderKey } from "@/lib/storage/provider-keys";
+import {
+  persistProviderKey,
+  getPersistedProviderKey,
+  getAllPersistedProviderKeys,
+} from "@/lib/storage/provider-keys";
 import {
   getCustomizableState,
   setCustomizableState,
@@ -251,7 +255,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const parsed = JSON.parse(savedSelectedAi);
         if (parsed?.provider) {
-          setSelectedAIProvider(parsed);
+          const providerId = parsed.provider;
+          const vars = { ...(parsed.variables || {}) };
+
+          if (providerId === "auto") {
+            const bank = getAllPersistedProviderKeys();
+            if (!vars.GROQ_KEY && bank["groq"]) vars.GROQ_KEY = bank["groq"];
+            if (!vars.GEMINI_KEY && bank["gemini"]) vars.GEMINI_KEY = bank["gemini"];
+            if (!vars.OPENAI_KEY && bank["openai"]) vars.OPENAI_KEY = bank["openai"];
+          } else {
+            const currentKey = vars.API_KEY || vars.api_key || vars.apiKey;
+            if (!currentKey) {
+              const savedKey = getPersistedProviderKey(providerId);
+              if (savedKey) {
+                const providerDef = [...AI_PROVIDERS, ...aiList].find((p) => p.id === providerId);
+                const curlStr = providerDef?.curl || "";
+                const keyName = curlStr.includes("{{api_key}}") ? "api_key" : "API_KEY";
+                vars[keyName] = savedKey;
+              }
+            }
+          }
+          setSelectedAIProvider({ provider: providerId, variables: vars });
         }
       } catch (e) {
         console.warn("Failed to parse saved selected AI provider");
@@ -266,7 +290,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const parsed = JSON.parse(savedSelectedStt);
         if (parsed?.provider) {
-          setSelectedSttProvider(parsed);
+          const providerId = parsed.provider;
+          const vars = { ...(parsed.variables || {}) };
+          const currentKey = vars.api_key || vars.API_KEY || vars.apiKey;
+          if (!currentKey) {
+            const savedKey = getPersistedProviderKey(providerId);
+            if (savedKey) {
+              const providerDef = [...SPEECH_TO_TEXT_PROVIDERS, ...sttList].find((p) => p.id === providerId);
+              const curlStr = providerDef?.curl || "";
+              const keyName = curlStr.includes("{{API_KEY}}") ? "API_KEY" : "api_key";
+              vars[keyName] = savedKey;
+            }
+          }
+          setSelectedSttProvider({ provider: providerId, variables: vars });
         }
       } catch (e) {
         console.warn("Failed to parse saved selected STT provider");
@@ -554,7 +590,41 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Update supportsImages immediately when provider changes
+    const updatedVariables = { ...variables };
+
+    if (provider !== "auto") {
+      const passedKey =
+        updatedVariables.API_KEY ??
+        updatedVariables.api_key ??
+        updatedVariables.apiKey;
+
+      if (passedKey !== undefined && passedKey !== null) {
+        if (passedKey.trim()) {
+          persistProviderKey(provider, passedKey);
+        } else {
+          persistProviderKey(provider, "");
+        }
+      } else {
+        const savedKey = getPersistedProviderKey(provider);
+        if (savedKey) {
+          const providerDef = allAiProviders.find((p) => p.id === provider);
+          const curlStr = providerDef?.curl || "";
+          const keyName = curlStr.includes("{{api_key}}") ? "api_key" : "API_KEY";
+          updatedVariables[keyName] = savedKey;
+        }
+      }
+    } else {
+      const bank = getAllPersistedProviderKeys();
+      if (updatedVariables.GROQ_KEY) persistProviderKey("groq", updatedVariables.GROQ_KEY);
+      else if (bank["groq"]) updatedVariables.GROQ_KEY = bank["groq"];
+
+      if (updatedVariables.GEMINI_KEY) persistProviderKey("gemini", updatedVariables.GEMINI_KEY);
+      else if (bank["gemini"]) updatedVariables.GEMINI_KEY = bank["gemini"];
+
+      if (updatedVariables.OPENAI_KEY) persistProviderKey("openai", updatedVariables.OPENAI_KEY);
+      else if (bank["openai"]) updatedVariables.OPENAI_KEY = bank["openai"];
+    }
+
     if (!pluelyApiEnabled) {
       const selectedProvider = allAiProviders.find((p) => p.id === provider);
       if (selectedProvider) {
@@ -566,24 +636,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    setSelectedAIProvider((prev) => ({
-      ...prev,
+    setSelectedAIProvider({
       provider,
-      variables,
-    }));
-
-    // Persist the API key independently so Auto mode can find it later
-    if (provider !== "auto") {
-      const apiKey = variables?.API_KEY || variables?.api_key || "";
-      if (apiKey) {
-        persistProviderKey(provider, apiKey);
-      }
-    } else {
-      // In Auto mode, we save all provided keys
-      if (variables?.GROQ_KEY) persistProviderKey("groq", variables.GROQ_KEY);
-      if (variables?.GEMINI_KEY) persistProviderKey("gemini", variables.GEMINI_KEY);
-      if (variables?.OPENAI_KEY) persistProviderKey("openai", variables.OPENAI_KEY);
-    }
+      variables: updatedVariables,
+    });
   };
 
   // Setter for selected STT with validation
@@ -599,7 +655,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setSelectedSttProvider((prev) => ({ ...prev, provider, variables }));
+    const updatedVariables = { ...variables };
+    const passedKey =
+      updatedVariables.API_KEY ??
+      updatedVariables.api_key ??
+      updatedVariables.apiKey;
+
+    if (passedKey !== undefined && passedKey !== null) {
+      if (passedKey.trim()) {
+        persistProviderKey(provider, passedKey);
+      } else {
+        persistProviderKey(provider, "");
+      }
+    } else {
+      const savedKey = getPersistedProviderKey(provider);
+      if (savedKey) {
+        const providerDef = allSttProviders.find((p) => p.id === provider);
+        const curlStr = providerDef?.curl || "";
+        const keyName = curlStr.includes("{{API_KEY}}") ? "API_KEY" : "api_key";
+        updatedVariables[keyName] = savedKey;
+      }
+    }
+
+    setSelectedSttProvider({ provider, variables: updatedVariables });
   };
 
   // Toggle handlers

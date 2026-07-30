@@ -15,7 +15,10 @@ import { getResponseSettings, RESPONSE_LENGTHS, LANGUAGES } from "@/lib";
 import { MARKDOWN_FORMATTING_INSTRUCTIONS } from "@/config/constants";
 import { searchLocalMemory } from "../database/rag.action";
 import { resolveAutoRoute, buildRoutedProviderConfig } from "./auto-router.function";
-import { getAllPersistedProviderKeys } from "@/lib/storage/provider-keys";
+import {
+  getAllPersistedProviderKeys,
+  getPersistedProviderKey,
+} from "@/lib/storage/provider-keys";
 import { saveApiUsageRecord } from "../storage/api-usage";
 
 
@@ -321,7 +324,18 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
     }
 
     // Check if API key is configured for the selected provider
-    const apiKey = selectedProvider?.variables?.api_key || selectedProvider?.variables?.API_KEY;
+    let apiKey = selectedProvider?.variables?.api_key || selectedProvider?.variables?.API_KEY;
+    if (!apiKey && selectedProvider?.provider && selectedProvider.provider !== "auto") {
+      const persistedKey = getPersistedProviderKey(selectedProvider.provider);
+      if (persistedKey) {
+        apiKey = persistedKey;
+        selectedProvider.variables = {
+          ...(selectedProvider.variables || {}),
+          API_KEY: persistedKey,
+          api_key: persistedKey,
+        };
+      }
+    }
     const hasApiKey = apiKey && apiKey.trim().length > 0;
 
     if (!hasApiKey && !usePluelyAPI) {

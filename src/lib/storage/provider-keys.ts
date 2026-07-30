@@ -29,14 +29,19 @@ function save(map: ProviderKeyMap) {
 
 /** Call this whenever a provider's API key is saved by the user. */
 export function persistProviderKey(providerId: string, apiKey: string) {
-  if (!providerId || !apiKey?.trim()) return;
+  if (!providerId) return;
   const map = load();
-  map[providerId] = apiKey.trim();
+  if (apiKey && apiKey.trim()) {
+    map[providerId] = apiKey.trim();
+  } else {
+    delete map[providerId];
+  }
   save(map);
 }
 
-/** Retrieve a stored key for a given provider (e.g. "groq", "gemini", "openai"). */
+/** Retrieve a stored key for a given provider (e.g. "groq", "gemini", "openai", "groq-stt"). */
 export function getPersistedProviderKey(providerId: string): string {
+  if (!providerId) return "";
   return load()[providerId] ?? "";
 }
 
@@ -44,3 +49,4 @@ export function getPersistedProviderKey(providerId: string): string {
 export function getAllPersistedProviderKeys(): ProviderKeyMap {
   return load();
 }
+

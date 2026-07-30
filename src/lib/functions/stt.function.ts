@@ -9,6 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { TYPE_PROVIDER } from "@/types";
 import curl2Json from "@bany/curl-to-json";
 import { shouldUsePluelyAPI } from "./pluely.api";
+import { getPersistedProviderKey } from "@/lib/storage/provider-keys";
 
 // Pluely STT function
 async function fetchPluelySTT(audio: File | Blob): Promise<string> {
@@ -86,7 +87,16 @@ export async function fetchSTT(params: STTParams): Promise<string> {
 
     // Build variable map with sanitized MODEL name for Gemini
     const varsObj: Record<string, string> = {};
-    for (const [key, val] of Object.entries(selectedProvider.variables || {})) {
+    const inputVars = { ...(selectedProvider.variables || {}) };
+    if (!inputVars.api_key && !inputVars.API_KEY && selectedProvider?.provider) {
+      const persistedKey = getPersistedProviderKey(selectedProvider.provider);
+      if (persistedKey) {
+        inputVars.api_key = persistedKey;
+        inputVars.API_KEY = persistedKey;
+      }
+    }
+
+    for (const [key, val] of Object.entries(inputVars)) {
       let uppercaseKey = key.toUpperCase();
       let valueToStore = val;
       
