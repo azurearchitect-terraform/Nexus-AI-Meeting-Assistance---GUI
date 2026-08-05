@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import { Streamdown } from "streamdown";
 import "katex/dist/katex.min.css";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -12,64 +12,15 @@ export function Markdown({
   children = "",
   isStreaming = false,
 }: MarkdownRendererProps) {
-  const [displayedText, setDisplayedText] = useState(isStreaming ? "" : children);
-  const targetTextRef = useRef(children);
-  const currentIndexRef = useRef(isStreaming ? 0 : children.length);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    targetTextRef.current = children;
-
-    // If not streaming, update immediately
-    if (!isStreaming) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      setDisplayedText(children);
-      currentIndexRef.current = children.length;
-      return;
-    }
-
-    // If new text is shorter than current index (new query started), reset
-    if (children.length < currentIndexRef.current) {
-      currentIndexRef.current = 0;
-      setDisplayedText("");
-    }
-
-    // Start typewriter loop if not active
-    if (!timerRef.current) {
-      timerRef.current = setInterval(() => {
-        const target = targetTextRef.current;
-        const currentLen = currentIndexRef.current;
-
-        if (currentLen < target.length) {
-          const diff = target.length - currentLen;
-          const step = diff > 40 ? 5 : diff > 15 ? 2 : 1;
-          const nextIndex = Math.min(target.length, currentLen + step);
-          currentIndexRef.current = nextIndex;
-          setDisplayedText(target.slice(0, nextIndex));
-        }
-      }, 12);
-    }
-  }, [children, isStreaming]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, []);
-
-  const textToRender = isStreaming ? displayedText : children;
+  // During streaming: instantly display raw text (no markdown parser buffering)
+  // After streaming: render fully through Streamdown for rich formatting
+  if (isStreaming) {
+    return <StreamingTextView text={children} />;
+  }
 
   return (
     <Streamdown
-      mode={isStreaming ? "streaming" : "static"}
-      parseIncompleteMarkdown={isStreaming}
-      isAnimating={isStreaming}
+      mode="static"
       shikiTheme={["github-light", "github-dark"]}
       components={COMPONENTS as any}
       controls={{
@@ -83,8 +34,34 @@ export function Markdown({
         },
       }}
     >
-      {textToRender}
+      {children}
     </Streamdown>
+  );
+}
+
+/**
+ * Raw streaming text view — no markdown parser, zero buffering.
+ * Renders each line as it arrives from the AI stream.
+ * Preserves markdown characters visually (bullets, bold, code) as plain text
+ * so the user can read line-by-line in real time.
+ */
+function StreamingTextView({ text }: { text: string }) {
+  const lines = text.split("\n");
+
+  return (
+    <div className="streaming-text-view font-mono text-[0.85rem] leading-relaxed whitespace-pre-wrap break-words">
+      {lines.map((line, i) => {
+        const isLast = i === lines.length - 1;
+        return (
+          <div key={i} className="streaming-line">
+            {line}
+            {isLast && (
+              <span className="inline-block w-[2px] h-[1em] bg-primary align-middle ml-[1px] animate-pulse" />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
