@@ -253,21 +253,6 @@ export const useChatCompletion = (
               messages: [...updatedMessages.messages, assistantMsg],
             };
 
-            // Check if assistant message already exists
-            const lastMessage =
-              updatedWithResponse.messages[
-                updatedWithResponse.messages.length - 1
-              ];
-            if (lastMessage.role === "assistant") {
-              // Update existing assistant message
-              updatedWithResponse.messages[
-                updatedWithResponse.messages.length - 1
-              ] = assistantMsg;
-            } else {
-              // Add new assistant message
-              updatedWithResponse.messages.push(assistantMsg);
-            }
-
             setMessages(updatedWithResponse);
 
             // Auto-scroll during streaming

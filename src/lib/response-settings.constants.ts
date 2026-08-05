@@ -19,14 +19,14 @@ export const RESPONSE_LENGTHS: ResponseLengthOption[] = [
     description:
       "Best for quick answers, summaries, and when you need to save time",
     prompt:
-      "IMPORTANT: You must keep your response extremely brief and concise. Limit your answer to 2-4 sentences maximum. Provide only the most essential information. Do not include explanations, examples, or additional context unless explicitly requested. Get straight to the point. This is a strict requirement.",
+      "IMPORTANT: Format your response strictly as 2-3 concise, line-by-line bullet points for real-time speed. Line 1: Direct answer. Lines 2-3: Key points. Never write long paragraphs. This is a strict requirement.",
   },
   {
     id: "medium",
     title: "Medium",
     description: "Balanced responses with adequate explanations for most tasks",
     prompt:
-      "IMPORTANT: Provide responses with moderate length - not too brief, not too lengthy. Include key explanations and relevant details. If the user asks a technical or process question (e.g. migration, system design), you MUST provide a detailed, step-by-step, and comprehensive explanation. For simple questions, keep it to 1-2 paragraphs. Stay focused and well-organized.",
+      "IMPORTANT: Format your response line-by-line. Start with a direct 1-sentence answer, followed by 3-4 concise bullet points with relevant technical details, architecture decisions, and trade-offs. Avoid continuous narrative paragraphs.",
   },
   {
     id: "auto",
@@ -34,7 +34,7 @@ export const RESPONSE_LENGTHS: ResponseLengthOption[] = [
     description:
       "AI determines the best length based on your question's complexity",
     prompt:
-      "IMPORTANT: Carefully assess the complexity and scope of the question, then adjust your response length accordingly. For simple questions, be brief (2-4 sentences). For moderate questions, provide balanced detail (1-2 paragraphs). For complex questions or technical processes (like cloud migrations, architecture, or code), give highly detailed, step-by-step, and comprehensive answers with appropriate depth. Always match the response length to what the question actually requires.",
+      "IMPORTANT: Always deliver answers formatted line-by-line for real-time readability. Start with the direct answer on Line 1, followed by clean, concise bullet points tailored to the complexity of the question. Never write long unbroken paragraph blocks.",
   },
 ];
 

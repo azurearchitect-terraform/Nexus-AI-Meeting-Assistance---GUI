@@ -14,6 +14,8 @@ export function Markdown({
 }: MarkdownRendererProps) {
   return (
     <Streamdown
+      mode={isStreaming ? "streaming" : "static"}
+      parseIncompleteMarkdown={isStreaming}
       isAnimating={isStreaming}
       shikiTheme={["github-light", "github-dark"]}
       components={COMPONENTS as any}

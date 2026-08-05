@@ -203,11 +203,11 @@ async function* fetchLocalAIResponse(params: {
   if (signal?.aborted) return;
   
   // Stream the response out word by word to simulate true UI streaming
-  const words = responseBody.split(" ");
-  for (const word of words) {
+  const tokens = responseBody.split(/(\s+)/);
+  for (const token of tokens) {
     if (signal?.aborted) return;
-    yield word + " ";
-    await new Promise((r) => setTimeout(r, 30));
+    yield token;
+    await new Promise((r) => setTimeout(r, 20));
   }
 }
 
