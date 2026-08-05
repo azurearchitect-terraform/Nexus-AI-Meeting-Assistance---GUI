@@ -24,7 +24,7 @@ export interface CustomizableState {
 }
 
 export const DEFAULT_CUSTOMIZABLE_STATE: CustomizableState = {
-  appIcon: { isVisible: true },
+  appIcon: { isVisible: false },
   alwaysOnTop: { isEnabled: false },
   autostart: { isEnabled: true },
   cursor: { type: "invisible" },
@@ -45,7 +45,7 @@ export const getCustomizableState = (): CustomizableState => {
     const parsedState = JSON.parse(stored);
 
     return {
-      appIcon: parsedState.appIcon || DEFAULT_CUSTOMIZABLE_STATE.appIcon,
+      appIcon: parsedState.appIcon !== undefined ? parsedState.appIcon : DEFAULT_CUSTOMIZABLE_STATE.appIcon,
       alwaysOnTop:
         parsedState.alwaysOnTop || DEFAULT_CUSTOMIZABLE_STATE.alwaysOnTop,
       autostart: parsedState.autostart || DEFAULT_CUSTOMIZABLE_STATE.autostart,

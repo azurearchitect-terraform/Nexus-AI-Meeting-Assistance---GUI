@@ -338,8 +338,14 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
     }
     const hasApiKey = apiKey && apiKey.trim().length > 0;
 
-    if (!hasApiKey && !usePluelyAPI) {
-      // Fallback to local Nexus AI streaming engine if no API key is provided
+    if (!hasApiKey && !usePluelyAPI && provider?.id !== "local") {
+      const providerName = provider?.name || selectedProvider?.provider || "AI";
+      yield `⚠️ **API Key Missing**: Please configure your API key for **${providerName}** in Settings → AI Provider to enable live responses.`;
+      return;
+    }
+
+    if (!hasApiKey && !usePluelyAPI && provider?.id === "local") {
+      // Fallback to local Nexus AI streaming engine if local provider is chosen
       yield* fetchLocalAIResponse({
         userMessage,
         systemPrompt: enhancedSystemPrompt,
@@ -458,7 +464,16 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
       }
       const content =
         getByPath(json, provider?.responseContentPath || "") || "";
-      yield content;
+      if (typeof content === "string") {
+        const words = content.split(/(\s+)/);
+        for (const w of words) {
+          if (signal?.aborted) return;
+          yield w;
+          await new Promise((r) => setTimeout(r, 15));
+        }
+      } else {
+        yield String(content || "");
+      }
       return;
     }
 

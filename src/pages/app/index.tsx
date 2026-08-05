@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Updater, CustomCursor } from "@/components";
 import { SystemAudio, Completion } from "./components";
 import { useApp } from "@/hooks";
@@ -17,6 +17,26 @@ const App = () => {
   const platform = getPlatform();
 
   const [activeTab, setActiveTab] = useState<"ask" | "listen">("listen");
+  const [opacity, setOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem("nexus_app_transparency");
+    return saved ? Number(saved) : 95;
+  });
+
+  useEffect(() => {
+    const handleTransparencyChange = (e: CustomEvent<number>) => {
+      if (typeof e.detail === "number") {
+        setOpacity(e.detail);
+      } else {
+        const saved = localStorage.getItem("nexus_app_transparency");
+        if (saved) setOpacity(Number(saved));
+      }
+    };
+
+    window.addEventListener("nexus_transparency_changed" as any, handleTransparencyChange as any);
+    return () => {
+      window.removeEventListener("nexus_transparency_changed" as any, handleTransparencyChange as any);
+    };
+  }, []);
 
   return (
     <ErrorBoundary
@@ -34,7 +54,11 @@ const App = () => {
         }`}
         data-tauri-drag-region
       >
-        <div data-slot="card" className="w-full h-full flex flex-col rounded-xl border border-border/50 shadow-2xl overflow-hidden">
+        <div 
+          data-slot="card" 
+          style={{ opacity: opacity / 100 }}
+          className="w-full h-full flex flex-col rounded-xl border border-border/50 shadow-2xl overflow-hidden transition-opacity duration-150 backdrop-blur-md"
+        >
           
           <OverlayTabBar
             activeTab={activeTab}

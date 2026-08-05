@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { 
   Button, Markdown, 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+  Popover, PopoverTrigger, PopoverContent, Slider
 } from "@/components";
 import { FollowUpPills } from "./FollowUpPills";
 import { ActionToolbar } from "./ActionToolbar";
@@ -26,7 +27,13 @@ import {
   Maximize2Icon,
   Minimize2Icon,
   HistoryIcon,
-  TypeIcon
+  TypeIcon,
+  SlidersHorizontalIcon,
+  MinusIcon,
+  PlusIcon,
+  AlertTriangleIcon,
+  KeyRoundIcon,
+  SettingsIcon
 } from "lucide-react";
 import {
   Select,
@@ -101,9 +108,9 @@ export const ListenMode = () => {
     usedLocalKnowledge,
     scanDocuments,
     isTestMicEnabled,
-    setIsTestMicEnabled
+    setIsTestMicEnabled,
   } = systemAudio;
-  const { selectedAIProvider, selectedSttProvider } = useGlobalApp();
+  const { selectedAIProvider } = useGlobalApp();
 
   const bank = getAllPersistedProviderKeys();
   const isAuto = selectedAIProvider?.provider === "auto";
@@ -121,22 +128,8 @@ export const ListenMode = () => {
     selectedAIProvider?.variables?.apiKey ||
     getPersistedProviderKey(selectedAIProvider?.provider);
   const hasNormalKey = !isAuto && !!currentAiKey;
-  const hasAiKey = hasAutoKey || hasNormalKey || selectedAIProvider?.provider === "local";
-
-  const sttKey = 
-    selectedSttProvider?.variables?.api_key || 
-    selectedSttProvider?.variables?.API_KEY ||
-    getPersistedProviderKey(selectedSttProvider?.provider) ||
-    getPersistedProviderKey("groq-stt") ||
-    bank["groq-stt"];
-  const hasSttKey = 
-    !!sttKey || 
-    selectedSttProvider?.provider === "local" || 
-    selectedSttProvider?.provider === "browser" || 
-    selectedSttProvider?.provider === "none" ||
-    !selectedSttProvider?.provider;
-
-  const isAPIKeyMissing = !hasAiKey || !hasSttKey;
+  const isLocalAi = selectedAIProvider?.provider === "local";
+  const isAiKeyMissing = !hasAutoKey && !hasNormalKey && !isLocalAi;
 
   useEffect(() => {
     // Update system audio context when profile changes
@@ -152,17 +145,55 @@ export const ListenMode = () => {
     }
   }, [activeProfile]);
 
-  // Smooth line-by-line autoscroll during real-time streaming
+  // Anchor answer at the top when a new answer starts; do NOT auto-scroll down so user can read smoothly from line 1
   useEffect(() => {
     if (isAIProcessing && answerScrollRef.current) {
-      answerScrollRef.current.scrollTop = answerScrollRef.current.scrollHeight;
+      answerScrollRef.current.scrollTop = 0;
     }
-  }, [lastAIResponse, isAIProcessing]);
+  }, [isAIProcessing]);
 
   const [isPaused, setIsPaused] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [summaryText, setSummaryText] = useState("");
   const [isSummarizing, setIsSummarizing] = useState(false);
+
+  const [transparency, setTransparency] = useState<number>(() => {
+    const saved = localStorage.getItem("nexus_app_transparency");
+    return saved ? Number(saved) : 95;
+  });
+
+  useEffect(() => {
+    const handleTransparencyChange = (e: CustomEvent<number>) => {
+      if (typeof e.detail === "number") {
+        setTransparency(e.detail);
+      } else {
+        const saved = localStorage.getItem("nexus_app_transparency");
+        if (saved) setTransparency(Number(saved));
+      }
+    };
+
+    window.addEventListener("nexus_transparency_changed" as any, handleTransparencyChange as any);
+    return () => {
+      window.removeEventListener("nexus_transparency_changed" as any, handleTransparencyChange as any);
+    };
+  }, []);
+
+  const updateTransparency = (val: number) => {
+    const clamped = Math.max(25, Math.min(100, Math.round(val)));
+    setTransparency(clamped);
+    localStorage.setItem("nexus_app_transparency", String(clamped));
+    window.dispatchEvent(new CustomEvent("nexus_transparency_changed", { detail: clamped }));
+  };
+
+  const handleTransparencyWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.deltaY < 0) {
+      updateTransparency(transparency + 5);
+    } else {
+      updateTransparency(transparency - 5);
+    }
+  };
 
   const handleSummarizeMeeting = async () => {
     if (!conversation.messages || conversation.messages.length === 0) {
@@ -356,11 +387,17 @@ ${messagesContent}`;
               <Button 
                 variant={capturing ? "default" : "ghost"} 
                 size="sm" 
-                className={`h-7 rounded-full px-2.5 text-xs ${capturing ? "bg-green-500 hover:bg-green-600 text-white" : "border border-border/50"}`}
+                className={`h-7 rounded-full px-2.5 text-xs ${
+                  capturing 
+                    ? isAiKeyMissing 
+                      ? "bg-amber-500 hover:bg-amber-600 text-black font-semibold shadow-sm" 
+                      : "bg-green-500 hover:bg-green-600 text-white shadow-sm" 
+                    : "border border-border/50"
+                }`}
                 onClick={capturing ? stopCapture : startCapture}
               >
-                <div className={`h-2 w-2 rounded-full ${capturing ? "bg-white animate-pulse" : "bg-muted-foreground"} mr-1.5`} />
-                {capturing ? "Listening" : "System Audio"}
+                <div className={`h-2 w-2 rounded-full ${capturing ? (isAiKeyMissing ? "bg-black animate-pulse" : "bg-white animate-pulse") : "bg-muted-foreground"} mr-1.5`} />
+                {capturing ? (isAiKeyMissing ? "Audio Active (No AI Key)" : "Listening") : "System Audio"}
               </Button>
 
               <Button
@@ -388,10 +425,21 @@ ${messagesContent}`;
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
-            <div className={`h-2 w-2 rounded-full ${capturing ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
-            {capturing ? "listening" : "standby"}
-          </div>
+          {isAiKeyMissing ? (
+            <button
+              onClick={() => invoke("open_dashboard")}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/30 text-xs font-semibold hover:bg-amber-500/20 transition-all cursor-pointer whitespace-nowrap shrink-0 animate-pulse"
+              title="AI API key is missing. Click to open Settings and configure your API key."
+            >
+              <AlertTriangleIcon className="h-3 w-3 text-amber-500" />
+              <span>Missing API Key</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              <div className={`h-2 w-2 rounded-full ${capturing ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
+              {capturing ? "listening" : "standby"}
+            </div>
+          )}
         </div>
       )}
 
@@ -399,7 +447,11 @@ ${messagesContent}`;
       <div className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-lg bg-muted/40 border border-border/40 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div className="flex items-center gap-1.5 shrink-0">
-            <MicIcon className={`h-3.5 w-3.5 ${capturing ? "text-green-500 animate-pulse" : "text-muted-foreground"}`} />
+            {isAiKeyMissing ? (
+              <AlertTriangleIcon className="h-3.5 w-3.5 text-amber-500" />
+            ) : (
+              <MicIcon className={`h-3.5 w-3.5 ${capturing ? "text-green-500 animate-pulse" : "text-muted-foreground"}`} />
+            )}
             <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
               Question:
             </span>
@@ -457,11 +509,24 @@ ${messagesContent}`;
         </div>
       )}
 
-      {/* Offline Mode Alert */}
-      {isAPIKeyMissing && (
-        <div className="flex items-center gap-2 px-3 py-1.5 border border-amber-500/20 bg-amber-500/5 rounded-lg text-amber-500 text-xs shrink-0">
-          <span className="font-semibold">Offline Mode:</span>
-          <span>Searching local scanned documents only. Configure API keys in Settings &rarr; AI Providers for full cloud brain.</span>
+      {/* Offline Mode / Missing Key Notice */}
+      {isAiKeyMissing && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border border-amber-500/30 bg-amber-500/10 rounded-lg text-amber-500 text-xs shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangleIcon className="h-4 w-4 shrink-0 text-amber-500" />
+            <span className="font-semibold truncate">
+              AI API Key Not Configured: Please add your API key for full real-time answers.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2.5 text-[10px] font-bold border-amber-500/40 text-amber-500 hover:bg-amber-500 hover:text-black rounded-full shrink-0 cursor-pointer"
+            onClick={() => invoke("open_dashboard")}
+          >
+            <SettingsIcon className="h-3 w-3 mr-1" />
+            Open Settings
+          </Button>
         </div>
       )}
 
@@ -477,6 +542,87 @@ ${messagesContent}`;
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* Quick Transparency Popover with Steppers and Wheel Support */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onWheel={handleTransparencyWheel}
+                  className="h-6 px-2 text-[10px] rounded-full text-muted-foreground hover:text-foreground cursor-pointer select-none"
+                  title="Adjust Transparency (Click or scroll mouse wheel over this button)"
+                >
+                  <SlidersHorizontalIcon className="h-3 w-3 mr-1 text-primary" />
+                  <span>{transparency}%</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent 
+                align="end" 
+                onWheel={handleTransparencyWheel}
+                className="w-68 p-3.5 bg-background/95 backdrop-blur-2xl border border-border/80 rounded-xl shadow-2xl space-y-2.5 z-[9999]"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-foreground tracking-wide">TRANSPARENCY</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => updateTransparency(transparency - 5)}
+                      disabled={transparency <= 25}
+                      className="h-5 w-5 rounded flex items-center justify-center bg-muted hover:bg-primary hover:text-primary-foreground text-muted-foreground disabled:opacity-30 transition-all cursor-pointer"
+                      title="Decrease Opacity (-5%)"
+                    >
+                      <MinusIcon className="h-2.5 w-2.5" />
+                    </button>
+                    <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 min-w-[38px] text-center">
+                      {transparency}%
+                    </span>
+                    <button
+                      onClick={() => updateTransparency(transparency + 5)}
+                      disabled={transparency >= 100}
+                      className="h-5 w-5 rounded flex items-center justify-center bg-muted hover:bg-primary hover:text-primary-foreground text-muted-foreground disabled:opacity-30 transition-all cursor-pointer"
+                      title="Increase Opacity (+5%)"
+                    >
+                      <PlusIcon className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="py-1">
+                  <Slider
+                    value={[transparency]}
+                    onValueChange={(vals) => updateTransparency(vals[0])}
+                    min={25}
+                    max={100}
+                    step={5}
+                    className="w-full cursor-pointer"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-1 pt-1 border-t border-border/40">
+                  {[
+                    { label: "100% Solid", val: 100 },
+                    { label: "85% Glass", val: 85 },
+                    { label: "70% Clear", val: 70 },
+                    { label: "50% Stealth", val: 50 },
+                    { label: "35% Ghost", val: 35 },
+                    { label: "25% Min", val: 25 },
+                  ].map((p) => (
+                    <button
+                      key={p.val}
+                      onClick={() => updateTransparency(p.val)}
+                      className={`px-1.5 py-0.5 text-[9px] font-semibold rounded border transition-all cursor-pointer text-center ${
+                        transparency === p.val
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[9px] text-muted-foreground/70 text-center italic">
+                  Scroll mouse wheel to adjust opacity
+                </p>
+              </PopoverContent>
+            </Popover>
+
             {/* Font Size Selector */}
             <Button
               variant="ghost"
@@ -521,26 +667,82 @@ ${messagesContent}`;
           className={`flex-1 overflow-y-auto pr-1 flex flex-col gap-4 ${fontSizeClass}`}
           style={{ color: textColor !== 'inherit' ? textColor : undefined }}
         >
-          {/* Prior Assistant Answers */}
-          {assistantMessages.map((msg: any, index: number) => (
-            <div key={msg.id || index} className="pb-3 border-b border-border/10 last:border-0 last:pb-0">
-              <Markdown>{msg.content}</Markdown>
-            </div>
-          ))}
-
-          {/* Live Streaming Assistant Answer */}
-          {isAIProcessing && lastAIResponse && (
-            <div className="pb-3 border-b border-border/10 last:border-0 last:pb-0">
-              <Markdown isStreaming={true}>{lastAIResponse}</Markdown>
-              <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
+          {/* Missing API Key Card (when no answers exist yet) */}
+          {isAiKeyMissing && assistantMessages.length === 0 && !isAIProcessing && (
+            <div className="flex flex-col items-center justify-center p-6 my-auto text-center border border-amber-500/30 bg-amber-500/5 rounded-xl space-y-3 shrink-0">
+              <div className="h-10 w-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shadow-sm">
+                <KeyRoundIcon className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold text-foreground">AI API Key Missing</h4>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  To receive real-time answers during your meeting, configure an API key for <strong>{selectedAIProvider?.provider || "your provider"}</strong> (Groq, Gemini, OpenAI, Claude, etc.) in Settings.
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                className="bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs rounded-full px-4 shadow-md cursor-pointer"
+                onClick={() => invoke("open_dashboard")}
+              >
+                <SettingsIcon className="h-3.5 w-3.5 mr-1.5" />
+                Open Settings & Add API Key
+              </Button>
             </div>
           )}
 
-          {/* Waiting State */}
-          {!isAIProcessing && !lastAIResponse && assistantMessages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground/50 py-12 gap-2">
-              <SparklesIcon className="h-8 w-8 opacity-40 animate-pulse" />
-              <p className="text-xs">AI will stream line-by-line suggested answers here as speech is detected...</p>
+          {/* 1. Live Streaming Assistant Answer (Always at TOP when AI is generating) */}
+          {isAIProcessing && (
+            <div className="pb-3 border-b border-primary/20 bg-primary/[0.03] p-3 rounded-lg">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-primary/10">
+                <div className="flex items-center gap-1.5 text-primary text-xs font-semibold">
+                  <SparklesIcon className="w-3.5 h-3.5 animate-spin" />
+                  <span>Generating Real-time Answer...</span>
+                </div>
+                <span className="text-[10px] text-primary/70 font-mono animate-pulse">Streaming</span>
+              </div>
+              {lastAIResponse ? (
+                <div>
+                  <Markdown isStreaming={true}>{lastAIResponse}</Markdown>
+                  <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground italic py-1">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                  <span>Formulating suggested response...</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 2. Primary / Previous Assistant Answers */}
+          {!isAIProcessing && assistantMessages.length > 0 && (
+            <div className="space-y-4">
+              {assistantMessages.map((msg: any, index: number) => (
+                <div key={msg.id || index} className="pb-3 border-b border-border/10 last:border-0 last:pb-0">
+                  {index === 0 && assistantMessages.length > 1 && (
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-wider mb-1">
+                      Latest Answer
+                    </div>
+                  )}
+                  {index > 0 && (
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground/40 tracking-wider mb-1">
+                      Previous Answer ({index + 1})
+                    </div>
+                  )}
+                  <Markdown>{msg.content}</Markdown>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 3. Empty state when no AI generation is active, no previous answers, and key is configured */}
+          {!isAIProcessing && assistantMessages.length === 0 && !lastAIResponse && !isAiKeyMissing && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 my-auto text-muted-foreground/60 space-y-2">
+              <SparklesIcon className="h-8 w-8 text-muted-foreground/30 animate-pulse" />
+              <p className="text-xs font-medium">Ready and listening for meeting questions</p>
+              <p className="text-[11px] text-muted-foreground/40 max-w-xs">
+                As questions are asked in your meeting, real-time answers and bullet points will stream here line by line.
+              </p>
             </div>
           )}
         </div>
