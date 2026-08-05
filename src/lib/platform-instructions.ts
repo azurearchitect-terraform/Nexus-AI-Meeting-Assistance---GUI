@@ -1,3 +1,5 @@
+import { emit } from "@tauri-apps/api/event";
+
 export interface PromptTemplate {
   id: string;
   name: string;
@@ -20,9 +22,7 @@ export const saveCustomPrompts = (prompts: PromptTemplate[]) => {
   localStorage.setItem(CUSTOM_PROMPTS_KEY, JSON.stringify(prompts));
   window.dispatchEvent(new Event("nexus_prompts_updated"));
   // Fire and forget Tauri event to notify other windows (like the Main Overlay)
-  import("@tauri-apps/api/event").then(({ emit }) => {
-    emit("nexus_prompts_updated").catch(console.error);
-  }).catch(console.error);
+  emit("nexus_prompts_updated").catch(console.error);
 };
 
 export const getAllPrompts = (): PromptTemplate[] => {

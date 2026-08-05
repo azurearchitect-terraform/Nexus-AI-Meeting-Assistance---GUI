@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { 
   Button, Markdown, 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
@@ -79,11 +80,9 @@ export const ListenMode = () => {
     const handlePromptsUpdated = () => setTemplates(getAllPrompts());
     window.addEventListener("nexus_prompts_updated", handlePromptsUpdated);
     
-    let unlisten: () => void;
-    import("@tauri-apps/api/event").then(({ listen }) => {
-      listen("nexus_prompts_updated", handlePromptsUpdated).then(fn => {
-        unlisten = fn;
-      });
+    let unlisten: (() => void) | undefined;
+    listen("nexus_prompts_updated", handlePromptsUpdated).then(fn => {
+      unlisten = fn;
     });
 
     return () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { AppContext } from "@/contexts/app.context";
 import { safeLocalStorage } from "@/lib";
 import { STORAGE_KEYS } from "@/config";
@@ -87,11 +88,9 @@ export const SettingsPanel = ({
     const handlePromptsUpdated = () => setTemplates(getAllPrompts());
     window.addEventListener("nexus_prompts_updated", handlePromptsUpdated);
     
-    let unlisten: () => void;
-    import("@tauri-apps/api/event").then(({ listen }) => {
-      listen("nexus_prompts_updated", handlePromptsUpdated).then(fn => {
-        unlisten = fn;
-      });
+    let unlisten: (() => void) | undefined;
+    listen("nexus_prompts_updated", handlePromptsUpdated).then(fn => {
+      unlisten = fn;
     });
 
     return () => {
