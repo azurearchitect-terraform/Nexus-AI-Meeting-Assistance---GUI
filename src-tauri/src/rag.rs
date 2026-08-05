@@ -50,42 +50,58 @@ pub async fn search_memory<R: Runtime>(app: AppHandle<R>, query: String, limit: 
     let db_path = get_db_path(&app)?;
     let conn = init_db(&db_path)?;
 
-    // FTS5 MATCH query. We replace non-alphanumeric with spaces to avoid syntax errors in MATCH
+    // Stop words to filter out before running FTS MATCH query
+    let stop_words = ["tell", "me", "something", "about", "your", "self", "yourself", "what", "is", "are", "you", "the", "a", "an", "and", "or", "in", "on", "of", "to", "for", "with"];
+    
+    // Clean query text: replace non-alphanumeric with spaces
     let safe_query: String = query.chars().map(|c| if c.is_alphanumeric() { c } else { ' ' }).collect();
-    let match_expr = safe_query.split_whitespace().collect::<Vec<&str>>().join(" OR ");
-    if match_expr.is_empty() {
-        return Ok(results);
-    }
+    let query_words: Vec<&str> = safe_query
+        .split_whitespace()
+        .collect();
 
-    let mut stmt = conn.prepare(
-        "SELECT filename, content, rank FROM documents WHERE documents MATCH ? ORDER BY rank LIMIT ?"
-    ).map_err(|e| e.to_string())?;
+    // Significant terms excluding stop words
+    let significant_terms: Vec<&str> = query_words
+        .iter()
+        .cloned()
+        .filter(|w| !stop_words.contains(&w.to_lowercase().as_str()) && w.len() > 1)
+        .collect();
 
-    let mut rows = stmt.query_map(params![match_expr, max_results as i64], |row| {
-        let filename: String = row.get(0)?;
-        let content: String = row.get(1)?;
-        let rank: f64 = row.get(2)?;
-        Ok(MemoryChunk {
-            id: filename.clone(),
-            content,
-            metadata: Some(format!("source: {}", filename)),
-            score: rank as f32,
-        })
-    }).map_err(|e| e.to_string())?;
+    let match_expr = if !significant_terms.is_empty() {
+        significant_terms.join(" OR ")
+    } else {
+        query_words.join(" OR ")
+    };
+    
+    println!("[RAG] search_memory query: '{}', match_expr: '{}', significant_terms: {:?}", query, match_expr, significant_terms);
 
-    let mut found_match = false;
-    for row in rows {
-        if let Ok(chunk) = row {
-            results.push(chunk);
-            found_match = true;
+    if !match_expr.is_empty() {
+        if let Ok(mut stmt) = conn.prepare(
+            "SELECT filename, content, rank FROM documents WHERE documents MATCH ? ORDER BY rank LIMIT ?"
+        ) {
+            if let Ok(rows) = stmt.query_map(params![match_expr, max_results as i64], |row| {
+                let filename: String = row.get(0)?;
+                let content: String = row.get(1)?;
+                let rank: f64 = row.get(2)?;
+                Ok(MemoryChunk {
+                    id: filename.clone(),
+                    content,
+                    metadata: Some(format!("source: {}", filename)),
+                    score: rank as f32,
+                })
+            }) {
+                for row in rows {
+                    if let Ok(chunk) = row {
+                        results.push(chunk);
+                    }
+                }
+            }
         }
     }
     
-    // If exact MATCH failed, fallback to LIKE queries for the terms to get at least something
-    if !found_match {
-        let terms: Vec<&str> = safe_query.split_whitespace().collect();
-        if !terms.is_empty() {
-            let like_expr = format!("%{}%", terms[0]);
+    // Fallback 1: LIKE search on terms
+    if results.is_empty() {
+        for term in significant_terms.iter().chain(query_words.iter()) {
+            let like_expr = format!("%{}%", term);
             if let Ok(mut fallback_stmt) = conn.prepare(
                 "SELECT filename, content FROM documents WHERE content LIKE ? LIMIT ?"
             ) {
@@ -106,9 +122,44 @@ pub async fn search_memory<R: Runtime>(app: AppHandle<R>, query: String, limit: 
                     }
                 }
             }
+            if !results.is_empty() {
+                break;
+            }
         }
     }
 
+    // Fallback 2: General self/profile query or single doc in db -> Return top chunks directly
+    if results.is_empty() {
+        let is_general_intro = query.to_lowercase().contains("tell") || 
+                              query.to_lowercase().contains("about") || 
+                              query.to_lowercase().contains("yourself") ||
+                              query.to_lowercase().contains("profile") ||
+                              query.to_lowercase().contains("experience");
+        if is_general_intro {
+            if let Ok(mut all_stmt) = conn.prepare(
+                "SELECT filename, content FROM documents LIMIT ?"
+            ) {
+                if let Ok(all_rows) = all_stmt.query_map(params![max_results as i64], |row| {
+                    let filename: String = row.get(0)?;
+                    let content: String = row.get(1)?;
+                    Ok(MemoryChunk {
+                        id: filename.clone(),
+                        content,
+                        metadata: Some(format!("source: {}", filename)),
+                        score: 0.0,
+                    })
+                }) {
+                    for row in all_rows {
+                        if let Ok(chunk) = row {
+                            results.push(chunk);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    println!("[RAG] search_memory returning {} results", results.len());
     Ok(results)
 }
 
@@ -123,6 +174,9 @@ pub fn scan_documents<R: Runtime>(app: AppHandle<R>, dir_path: Option<String>) -
         Some(path) if !path.trim().is_empty() => PathBuf::from(path),
         _ => get_documents_dir(&app)?,
     };
+    
+    println!("[RAG] Scanning documents in: {:?}", docs_dir);
+    
     let db_path = get_db_path(&app)?;
     let conn = init_db(&db_path)?;
 

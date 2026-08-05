@@ -13,13 +13,11 @@ import { Button } from "@/components";
 interface OverlayTabBarProps {
   activeTab: "ask" | "listen";
   setActiveTab: (tab: "ask" | "listen") => void;
-  isListening?: boolean;
 }
 
 export const OverlayTabBar = ({
   activeTab,
   setActiveTab,
-  isListening = false,
 }: OverlayTabBarProps) => {
   const openDashboard = async () => {
     try {
@@ -63,18 +61,6 @@ export const OverlayTabBar = ({
       </div>
 
       <div className="flex items-center gap-4">
-        {isListening ? (
-          <div className="flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 text-xs font-medium text-green-500 border border-green-500/20">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            Listening
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground border border-border/50">
-            <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-            Ready
-          </div>
-        )}
-
         <div className="flex items-center gap-2 border-l border-border/50 pl-4">
           <Button
             variant="outline"

@@ -39,7 +39,6 @@ const App = () => {
           <OverlayTabBar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            isListening={systemAudio?.capturing}
           />
 
           <div className="flex-1 overflow-hidden">

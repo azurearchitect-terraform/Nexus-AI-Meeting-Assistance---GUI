@@ -66,6 +66,51 @@ export interface ChatConversation {
 
 export type useSystemAudioType = ReturnType<typeof useSystemAudio>;
 
+function isResumeOrSelfIntroQuery(text: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase().trim();
+
+  const patterns = [
+    /tell (me|us) (something )?about your(self| career| background| experience| profile)/i,
+    /introduce your(self| background| experience)/i,
+    /intro(duction)? of your(self| background)/i,
+    /walk (me|us) through your (resume|background|experience|profile|career)/i,
+    /give (me|us) (a )?(brief )?(overview|summary|intro) of (yourself|your background|your experience|your career|your resume)/i,
+    /describe your(self| background| experience| career| role| profile| journey)/i,
+    /who are you/i,
+    /what is your background/i,
+    /what('s| is) on your resume/i,
+    /in your resume/i,
+    /from your resume/i,
+    /according to your resume/i,
+    /your past (work )?experience/i,
+    /your work history/i,
+    /summarize your resume/i,
+    /overview of your resume/i,
+    /tell me about your current role/i,
+    /tell me about your past role/i,
+  ];
+
+  if (patterns.some((re) => re.test(lower))) {
+    return true;
+  }
+
+  const directPhrases = [
+    "tell me about yourself",
+    "tell me something about yourself",
+    "tell us about yourself",
+    "tell us something about yourself",
+    "introduce yourself",
+    "give me your background",
+    "walk me through your resume",
+    "walk through your resume",
+    "walk me through your background",
+    "about yourself",
+  ];
+
+  return directPhrases.some((phrase) => lower.includes(phrase));
+}
+
 export function useSystemAudio() {
   const { resizeWindow } = useWindowResize();
   const globalShortcuts = useGlobalShortcuts();
@@ -126,6 +171,12 @@ export function useSystemAudio() {
   const capturingRef = useRef(capturing);
   const vadConfigRef = useRef(vadConfig);
   const vadActiveRef = useRef(false); // tracks whether Rust VAD loop is already alive
+  const contextContentRef = useRef(contextContent);
+  const systemPromptRef = useRef(systemPrompt);
+  const useSystemPromptRef = useRef(useSystemPrompt);
+  const selectedSttProviderRef = useRef(selectedSttProvider);
+  const allSttProvidersRef = useRef(allSttProviders);
+  const selectedAIProviderRef = useRef(selectedAIProvider);
 
   useEffect(() => {
     capturingRef.current = capturing;
@@ -134,6 +185,15 @@ export function useSystemAudio() {
   useEffect(() => {
     vadConfigRef.current = vadConfig;
   }, [vadConfig]);
+
+  useEffect(() => {
+    contextContentRef.current = contextContent;
+    systemPromptRef.current = systemPrompt;
+    useSystemPromptRef.current = useSystemPrompt;
+    selectedSttProviderRef.current = selectedSttProvider;
+    allSttProvidersRef.current = allSttProviders;
+    selectedAIProviderRef.current = selectedAIProvider;
+  }, [contextContent, systemPrompt, useSystemPrompt, selectedSttProvider, allSttProviders, selectedAIProvider]);
 
   // Load context settings and VAD config from localStorage on mount
   useEffect(() => {
@@ -305,9 +365,9 @@ export function useSystemAudio() {
           });
 
           // Fetch the effective system prompt
-          const effectiveSystemPrompt = useSystemPrompt
-            ? systemPrompt || DEFAULT_SYSTEM_PROMPT
-            : contextContent || DEFAULT_SYSTEM_PROMPT;
+          const effectiveSystemPrompt = useSystemPromptRef.current
+            ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
+            : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
             
           const visibleMessages = [...conversationRef.current.messages].reverse();
           const previousMessages = [...sessionMemoryRef.current, ...visibleMessages].map((msg) => {
@@ -349,7 +409,7 @@ export function useSystemAudio() {
       try {
         speechUnlisten = await listen("speech-detected", async (event) => {
           try {
-            if (!capturing) return;
+            if (!capturingRef.current) return;
 
             const base64Audio = event.payload as string;
             // Convert to blob
@@ -361,7 +421,7 @@ export function useSystemAudio() {
             const audioBlob = new Blob([bytes], { type: "audio/wav" });
 
             const usePluelyAPI = await shouldUsePluelyAPI();
-            let effectiveSttProvider = selectedSttProvider;
+            let effectiveSttProvider = selectedSttProviderRef.current;
 
             if (!effectiveSttProvider?.provider && !usePluelyAPI) {
               effectiveSttProvider = {
@@ -371,9 +431,9 @@ export function useSystemAudio() {
               };
             }
 
-            const providerConfig = allSttProviders.find(
+            const providerConfig = allSttProvidersRef.current.find(
               (p) => p.id === effectiveSttProvider.provider
-            ) || allSttProviders[0];
+            ) || allSttProvidersRef.current[0];
 
             setIsProcessing(true);
 
@@ -382,14 +442,14 @@ export function useSystemAudio() {
             if (
               effectiveSttProvider?.provider === "gemini-stt" &&
               (!effectiveSttProvider.variables || (!effectiveSttProvider.variables.API_KEY && !effectiveSttProvider.variables.api_key)) &&
-              selectedAIProvider?.provider?.startsWith("gemini") &&
-              (selectedAIProvider.variables?.API_KEY || selectedAIProvider.variables?.api_key)
+              selectedAIProviderRef.current?.provider?.startsWith("gemini") &&
+              (selectedAIProviderRef.current.variables?.API_KEY || selectedAIProviderRef.current.variables?.api_key)
             ) {
               effectiveSttProvider = {
                 ...effectiveSttProvider,
                 variables: {
                   ...effectiveSttProvider.variables,
-                  API_KEY: selectedAIProvider.variables.API_KEY || selectedAIProvider.variables.api_key
+                  API_KEY: selectedAIProviderRef.current.variables.API_KEY || selectedAIProviderRef.current.variables.api_key
                 }
               };
             }
@@ -451,9 +511,9 @@ export function useSystemAudio() {
                 setLastTranscription(transcription);
                 setError("");
 
-                const effectiveSystemPrompt = useSystemPrompt
-                  ? systemPrompt || DEFAULT_SYSTEM_PROMPT
-                  : contextContent || DEFAULT_SYSTEM_PROMPT;
+                const effectiveSystemPrompt = useSystemPromptRef.current
+                  ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
+                  : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
 
                 const visibleMessages = [...conversationRef.current.messages].reverse();
                 const previousMessages = [...sessionMemoryRef.current, ...visibleMessages].map((msg) => {
@@ -489,10 +549,10 @@ export function useSystemAudio() {
                       if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
                       const delay = res.isFinal ? 100 : 800;
                       speechDebounceRef.current = setTimeout(() => {
-                        const prompt = useSystemPrompt
-                          ? systemPrompt || DEFAULT_SYSTEM_PROMPT
-                          : contextContent || DEFAULT_SYSTEM_PROMPT;
-                        processWithAI(res.transcript, prompt, conversation.messages);
+                        const prompt = useSystemPromptRef.current
+                          ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
+                          : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
+                        processWithAI(res.transcript, prompt, conversationRef.current.messages);
                       }, delay);
                     }
                   });
@@ -710,38 +770,7 @@ export function useSystemAudio() {
         const usePluelyAPI = await shouldUsePluelyAPI();
         let effectiveAIProvider = selectedAIProvider;
 
-        // Check if user selected a Hybrid Dual-Engine model option from the main screen dropdown
-        const storedModelStr = safeLocalStorage.getItem("selected_pluely_model");
-        if (storedModelStr) {
-          try {
-            const parsedModel = JSON.parse(storedModelStr);
-            if (parsedModel.id === "hybrid-gemini-gpt4o-mini") {
-              const keysStr = localStorage.getItem("provider_api_keys");
-              const keys = keysStr ? JSON.parse(keysStr) : {};
-              const savedKey = keys["openai"] || "";
-              effectiveAIProvider = {
-                provider: "openai",
-                variables: { 
-                  model: "gpt-4o-mini",
-                  api_key: savedKey,
-                  API_KEY: savedKey
-                },
-              };
-            } else if (parsedModel.id === "hybrid-gemini-pro") {
-              const keysStr = localStorage.getItem("provider_api_keys");
-              const keys = keysStr ? JSON.parse(keysStr) : {};
-              const savedKey = keys["gemini"] || "";
-              effectiveAIProvider = {
-                provider: "gemini",
-                variables: { 
-                  model: "gemini-3.1-pro-preview",
-                  api_key: savedKey,
-                  API_KEY: savedKey
-                },
-              };
-            }
-          } catch (e) {}
-        }
+
 
         const provider = allAiProviders.find(
           (p) => p.id === effectiveAIProvider.provider
@@ -757,53 +786,49 @@ export function useSystemAudio() {
             const routeResult = await routePrompt(transcription, effectiveAIProvider);
             finalSystemPrompt = routeResult.systemPrompt;
             setActivePersonaName(routeResult.personaName);
-          } else {
-            // Keep the manually selected prompt name updated in UI based on exact matches if possible
-            // (The UI will actually handle displaying the fixed state, but we can set a fallback)
-            setActivePersonaName("Fixed Prompt");
           }
           
-          let foundMemoryChunks: any[] = [];
-          try {
-            const memoryChunks = await searchLocalMemory(transcription, 3);
-            if (memoryChunks && memoryChunks.length > 0) {
-              setUsedLocalKnowledge(true);
-              foundMemoryChunks = memoryChunks;
-              const snippets = memoryChunks.map((m: any) => m.content).join("\n\n");
-              finalSystemPrompt = `CRITICAL INSTRUCTION: You MUST use the following LOCAL KNOWLEDGE BASE (e.g., Resume) to answer questions. Do NOT hallucinate or make up details, dates, or metrics. If the question asks about a specific project, duration, or metric, rely STRICTLY on the data provided below.\n\n[LOCAL KNOWLEDGE BASE]:\n${snippets}\n\n` + finalSystemPrompt;
-            } else {
+          // Strict Routing Rule:
+          // If the query asks to introduce/explain candidate background or resume,
+          // analyze and ground response in the uploaded resume.
+          // Otherwise, strictly use AI Brain without polluting with resume context.
+          const isIntroQuery = isResumeOrSelfIntroQuery(transcription);
+
+          if (isIntroQuery) {
+            try {
+              const memoryChunks = await searchLocalMemory(transcription, 8);
+              console.log(`[RAG] Self-intro/Resume query detected: "${transcription.substring(0, 80)}" → Found ${memoryChunks?.length || 0} resume chunks`);
+              if (memoryChunks && memoryChunks.length > 0) {
+                setUsedLocalKnowledge(true);
+                const snippets = memoryChunks.map((m: any) => m.content).join("\n\n");
+                console.log(`[RAG] Injecting ${snippets.length} chars from uploaded resume`);
+                finalSystemPrompt = `CRITICAL INSTRUCTION: The interviewer is asking the candidate to introduce themselves, explain their background, or summarize their resume. You MUST STRICTLY analyze and synthesize the candidate's actual background using the following UPLOADED RESUME. Speak in the first person ("I am...", "My background spans...", "In my recent work, I developed...") representing the candidate with confidence and clarity. Rely strictly on the skills, projects, and achievements in this resume.\n\n[CANDIDATE'S UPLOADED RESUME]:\n${snippets}\n\n` + finalSystemPrompt;
+              } else {
+                console.log("[RAG] No resume chunks found for self-intro query");
+                setUsedLocalKnowledge(false);
+              }
+            } catch (err) {
+              console.error("[RAG] Local resume search failed", err);
               setUsedLocalKnowledge(false);
             }
-          } catch (err) {
-            console.error("Local RAG search failed", err);
+          } else {
+            // General / Technical / Concept / Coding question:
+            // Strictly use AI Brain directly without injecting resume chunks!
             setUsedLocalKnowledge(false);
           }
 
-          const isAIKeyMissing = !effectiveAIProvider?.variables?.api_key && effectiveAIProvider?.provider !== "local";
-
-          if (isAIKeyMissing) {
-            // Offline mode: Skip AI fetch and just return document chunks
-            if (foundMemoryChunks.length > 0) {
-              const snippets = foundMemoryChunks.map((m: any) => `* ${m.content}`).join("\n\n");
-              fullResponse = `**Offline Document Match:**\n\n${snippets}`;
-            } else {
-              fullResponse = `*No relevant information found in offline documents.*`;
-            }
-            setLastAIResponse(fullResponse);
-          } else {
-            for await (const chunk of fetchAIResponse({
-              provider: usePluelyAPI ? undefined : provider,
-              selectedProvider: effectiveAIProvider,
-              systemPrompt: finalSystemPrompt,
-              history: previousMessages,
-              userMessage: transcription,
-              imagesBase64: imagesBase64 || [],
-              signal: abortSignal,
-            })) {
-              if (abortSignal.aborted) break;
-              fullResponse += chunk;
-              setLastAIResponse((prev) => prev + chunk);
-            }
+          for await (const chunk of fetchAIResponse({
+            provider: usePluelyAPI ? undefined : provider,
+            selectedProvider: effectiveAIProvider,
+            systemPrompt: finalSystemPrompt,
+            history: previousMessages,
+            userMessage: transcription,
+            imagesBase64: imagesBase64 || [],
+            signal: abortSignal,
+          })) {
+            if (abortSignal.aborted) break;
+            fullResponse += chunk;
+            setLastAIResponse((prev) => prev + chunk);
           }
         } catch (aiError: any) {
           // Suppress internal provider/model error details from UI
@@ -922,15 +947,15 @@ export function useSystemAudio() {
       await invoke<string>("stop_system_audio_capture").catch(() => {});
       vadActiveRef.current = false;
 
-      const deviceId =
-        selectedAudioDevices.output.id !== "default"
-          ? selectedAudioDevices.output.id
-          : null;
+      const deviceId = isTestMicEnabled
+        ? (selectedAudioDevices.input.id !== "default" ? selectedAudioDevices.input.id : null)
+        : (selectedAudioDevices.output.id !== "default" ? selectedAudioDevices.output.id : null);
 
       try {
         await invoke<string>("start_system_audio_capture", {
           vadConfig: vadConfig,
           deviceId: deviceId,
+          isInput: isTestMicEnabled,
         });
         vadActiveRef.current = true;
       } catch (nativeErr) {
@@ -945,10 +970,10 @@ export function useSystemAudio() {
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
                 const delay = res.isFinal ? 100 : 800;
                 speechDebounceRef.current = setTimeout(() => {
-                  const prompt = useSystemPrompt
-                    ? systemPrompt || DEFAULT_SYSTEM_PROMPT
-                    : contextContent || DEFAULT_SYSTEM_PROMPT;
-                  processWithAI(res.transcript, prompt, conversation.messages);
+                  const prompt = useSystemPromptRef.current
+                    ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
+                    : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
+                  processWithAI(res.transcript, prompt, conversationRef.current.messages);
                 }, delay);
               }
             });
@@ -961,6 +986,90 @@ export function useSystemAudio() {
       setIsPopoverOpen(true);
     }
   }, [vadConfig, selectedAudioDevices.output.id, useSystemPrompt, systemPrompt, contextContent, conversation.messages, processWithAI, isTestMicEnabled]);
+
+  // Resume capture WITHOUT resetting conversation history (for Pause → Resume)
+  const resumeCapture = useCallback(async () => {
+    try {
+      setError("");
+      setCapturing(true);
+      setIsPopoverOpen(true);
+      setIsContinuousMode(!vadConfig.enabled);
+      setRecordingProgress(0);
+
+      if (!vadConfig.enabled) {
+        // Continuous mode - manual stop/send
+        setIsRecordingInContinuousMode(false);
+        return;
+      }
+
+      // Check if we have online STT setup, otherwise default to offline WebSpeech
+      const usePluelyAPI = await shouldUsePluelyAPI();
+      const hasOnlineSTT = !!selectedSttProviderRef.current.provider || usePluelyAPI;
+
+      if (!hasOnlineSTT) {
+        setIsOfflineMode(true);
+        if (webSpeechRecognizer.isSupported()) {
+          if (!webSpeechRecognizer.isListening) {
+            webSpeechRecognizer.start((res) => {
+              if (res.transcript && res.transcript.trim()) {
+                setLastTranscription(res.transcript);
+                if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
+                const delay = res.isFinal ? 100 : 800;
+                speechDebounceRef.current = setTimeout(() => {
+                  const prompt = useSystemPromptRef.current
+                    ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
+                    : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
+                  processWithAI(res.transcript, prompt, conversationRef.current.messages);
+                }, delay);
+              }
+            });
+          }
+        }
+        return;
+      }
+
+      // VAD mode: native capture is PRIMARY
+      await invoke<string>("stop_system_audio_capture").catch(() => {});
+      vadActiveRef.current = false;
+
+      const deviceId = isTestMicEnabled
+        ? (selectedAudioDevices.input.id !== "default" ? selectedAudioDevices.input.id : null)
+        : (selectedAudioDevices.output.id !== "default" ? selectedAudioDevices.output.id : null);
+
+      try {
+        await invoke<string>("start_system_audio_capture", {
+          vadConfig: vadConfig,
+          deviceId: deviceId,
+          isInput: isTestMicEnabled,
+        });
+        vadActiveRef.current = true;
+      } catch (nativeErr) {
+        console.warn("Native audio capture failed, switching to offline mode:", nativeErr);
+        setIsOfflineMode(true);
+        if (webSpeechRecognizer.isSupported()) {
+          if (!webSpeechRecognizer.isListening) {
+            webSpeechRecognizer.start((res) => {
+              if (res.transcript && res.transcript.trim()) {
+                setLastTranscription(res.transcript);
+                if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
+                const delay = res.isFinal ? 100 : 800;
+                speechDebounceRef.current = setTimeout(() => {
+                  const prompt = useSystemPromptRef.current
+                    ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
+                    : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
+                  processWithAI(res.transcript, prompt, conversationRef.current.messages);
+                }, delay);
+              }
+            });
+          }
+        }
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
+      setIsPopoverOpen(true);
+    }
+  }, [vadConfig, selectedAudioDevices.output.id, processWithAI, isTestMicEnabled]);
 
   const scanDocuments = useCallback(async (path?: string) => {
     try {
@@ -979,8 +1088,10 @@ export function useSystemAudio() {
     }
   }, []);
 
-  // Background auto-scan every 15 minutes
+  // Background auto-scan every 15 minutes + immediate initial scan
   useEffect(() => {
+    // Initial scan on mount to ensure documents are indexed
+    scanDocuments().catch(console.error);
     const interval = setInterval(() => {
       scanDocuments().catch(console.error);
     }, 15 * 60 * 1000);
@@ -1025,6 +1136,47 @@ export function useSystemAudio() {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(`Failed to stop capture: ${errorMessage}`);
       console.error("Stop capture error:", err);
+    }
+  }, []);
+
+  // Pause capture: stops audio engine but preserves conversation + display state
+  const pauseCapture = useCallback(async () => {
+    try {
+      // Cancel speech debounce timer
+      if (speechDebounceRef.current) {
+        clearTimeout(speechDebounceRef.current);
+        speechDebounceRef.current = null;
+      }
+
+      // Stop WebSpeech offline fallback if running
+      if (webSpeechRecognizer.isSupported()) {
+        webSpeechRecognizer.stop();
+      }
+
+      // Abort any ongoing AI requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+
+      // Stop native audio capture
+      await invoke<string>("stop_system_audio_capture").catch(() => {});
+      vadActiveRef.current = false;
+
+      // Only stop capturing — preserve conversation, transcription, AI response
+      setCapturing(false);
+      setIsOfflineMode(false);
+      setIsProcessing(false);
+      setIsAIProcessing(false);
+      setIsContinuousMode(false);
+      setIsRecordingInContinuousMode(false);
+      setRecordingProgress(0);
+      setError("");
+      // NOTE: intentionally NOT clearing lastTranscription, lastAIResponse, or conversation
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(`Failed to pause capture: ${errorMessage}`);
+      console.error("Pause capture error:", err);
     }
   }, []);
 
@@ -1296,12 +1448,15 @@ export function useSystemAudio() {
     lastTranscription,
     lastAIResponse,
     activePersonaName,
+    setActivePersonaName,
     usedLocalKnowledge,
     isTestMicEnabled,
     setIsTestMicEnabled,
     error,
     setupRequired,
     startCapture,
+    resumeCapture,
+    pauseCapture,
     stopCapture,
     handleSetup,
     isPopoverOpen,

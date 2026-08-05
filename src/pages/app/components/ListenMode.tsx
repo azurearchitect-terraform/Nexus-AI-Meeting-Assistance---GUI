@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { getAllPrompts } from "@/lib/platform-instructions";
 import { PERSONAS } from "@/config/constants";
+import { getAllPersistedProviderKeys, getPersistedProviderKey } from "@/lib/storage/provider-keys";
 
 
 const FOLLOW_UPS: { label: string; icon?: "arrow" | "sparkles" }[] = [
@@ -91,9 +92,38 @@ export const ListenMode = () => {
   } = systemAudio;
   const { selectedAIProvider, selectedSttProvider } = useGlobalApp();
 
-  const isAPIKeyMissing = 
-    (!selectedAIProvider?.variables?.api_key && selectedAIProvider?.provider !== "local") || 
-    (!selectedSttProvider?.variables?.api_key && selectedSttProvider?.provider !== "local" && selectedSttProvider?.provider !== "none");
+  const bank = getAllPersistedProviderKeys();
+  const isAuto = selectedAIProvider?.provider === "auto";
+  const hasAutoKey = isAuto && !!(
+    selectedAIProvider?.variables?.GROQ_KEY || 
+    selectedAIProvider?.variables?.GEMINI_KEY || 
+    selectedAIProvider?.variables?.OPENAI_KEY ||
+    bank["groq"] ||
+    bank["gemini"] ||
+    bank["openai"]
+  );
+  const currentAiKey = 
+    selectedAIProvider?.variables?.api_key || 
+    selectedAIProvider?.variables?.API_KEY || 
+    selectedAIProvider?.variables?.apiKey ||
+    getPersistedProviderKey(selectedAIProvider?.provider);
+  const hasNormalKey = !isAuto && !!currentAiKey;
+  const hasAiKey = hasAutoKey || hasNormalKey || selectedAIProvider?.provider === "local";
+
+  const sttKey = 
+    selectedSttProvider?.variables?.api_key || 
+    selectedSttProvider?.variables?.API_KEY ||
+    getPersistedProviderKey(selectedSttProvider?.provider) ||
+    getPersistedProviderKey("groq-stt") ||
+    bank["groq-stt"];
+  const hasSttKey = 
+    !!sttKey || 
+    selectedSttProvider?.provider === "local" || 
+    selectedSttProvider?.provider === "browser" || 
+    selectedSttProvider?.provider === "none" ||
+    !selectedSttProvider?.provider;
+
+  const isAPIKeyMissing = !hasAiKey || !hasSttKey;
 
   useEffect(() => {
     // Update system audio context when profile changes

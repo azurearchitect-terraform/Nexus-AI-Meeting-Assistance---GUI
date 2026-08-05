@@ -35,8 +35,31 @@ export async function validateProvider(providerId: string, variables: Record<str
     }
   }
 
-  if (providerId === "groq") {
-    const apiKey = variables.API_KEY || variables.api_key;
+  if (providerId === "auto") {
+    let keys: Record<string, string> = {};
+    try {
+      const keysStr = localStorage.getItem("provider_api_keys");
+      if (keysStr) keys = JSON.parse(keysStr);
+    } catch (e) {}
+    const groqKey = variables.GROQ_KEY || keys["groq"] || "";
+    const geminiKey = variables.GEMINI_KEY || keys["gemini"] || "";
+    const openaiKey = variables.OPENAI_KEY || keys["openai"] || "";
+    
+    if (groqKey || geminiKey || openaiKey) return 'valid';
+    return 'missing';
+  }
+
+  if (providerId === "groq" || providerId === "groq-stt" || providerId === "groq_whisper") {
+    let apiKey = variables.API_KEY || variables.api_key;
+    if (!apiKey) {
+      try {
+        const keysStr = localStorage.getItem("provider_api_keys");
+        if (keysStr) {
+          const keys = JSON.parse(keysStr);
+          apiKey = keys["groq"] || "";
+        }
+      } catch (e) {}
+    }
     if (!apiKey) return 'missing';
     
     try {
@@ -46,7 +69,6 @@ export async function validateProvider(providerId: string, variables: Record<str
         }
       });
       if (res.ok) return 'valid';
-      if (res.status === 401) return 'invalid';
       return 'invalid';
     } catch (e) {
       return 'invalid';

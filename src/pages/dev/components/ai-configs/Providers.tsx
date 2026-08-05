@@ -1,4 +1,11 @@
 import { Button, Header, Input, Selection, TextInput } from "@/components";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { UseSettingsReturn } from "@/types";
 import curl2Json, { ResultJSON } from "@bany/curl-to-json";
 import { KeyIcon, TrashIcon } from "lucide-react";
@@ -282,28 +289,34 @@ export const Providers = ({
                   }`}
                 />
                 {isModelVar && modelOptions.length > 0 ? (
-                  <div>
-                    <select
-                      className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                      value={getVariableValue() || modelOptions[0].value}
-                      onChange={(e) => {
-                        if (!variable?.key || !selectedAIProvider) return;
-                        onSetSelectedAIProvider({
-                          ...selectedAIProvider,
-                          variables: {
-                            ...selectedAIProvider.variables,
-                            [variable.key]: e.target.value,
-                          },
-                        });
-                      }}
-                    >
+                  <Select
+                    value={getVariableValue() || modelOptions[0].value}
+                    onValueChange={(val) => {
+                      if (!variable?.key || !selectedAIProvider) return;
+                      onSetSelectedAIProvider({
+                        ...selectedAIProvider,
+                        variables: {
+                          ...selectedAIProvider.variables,
+                          [variable.key]: val,
+                        },
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full h-11 border border-input bg-background text-foreground focus:border-primary/50 transition-colors">
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 overflow-y-auto bg-popover text-popover-foreground border border-border shadow-lg">
                       {modelOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
+                        <SelectItem 
+                          key={opt.value} 
+                          value={opt.value}
+                          className="cursor-pointer hover:bg-accent/50 text-popover-foreground"
+                        >
                           {opt.label}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                  </div>
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <TextInput
                     placeholder={`Enter ${
