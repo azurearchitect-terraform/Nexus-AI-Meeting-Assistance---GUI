@@ -508,8 +508,24 @@ export function useSystemAudio() {
               }
 
               if (transcription.trim()) {
+                const timestamp = Date.now();
+                const userMessage = {
+                  id: generateMessageId("user", timestamp),
+                  role: "user" as const,
+                  content: transcription,
+                  timestamp,
+                };
+
                 setLastTranscription(transcription);
                 setError("");
+
+                // Instantly append user question into conversation for 0ms UI display
+                setConversation((prev) => ({
+                  ...prev,
+                  messages: [userMessage, ...prev.messages],
+                  updatedAt: timestamp,
+                  title: prev.title || generateConversationTitle(transcription),
+                }));
 
                 const effectiveSystemPrompt = useSystemPromptRef.current
                   ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
@@ -838,29 +854,31 @@ export function useSystemAudio() {
 
         if (fullResponse) {
           const timestamp = Date.now();
-          const userMessage = {
-            id: generateMessageId("user", timestamp),
-            role: "user" as const,
-            content: transcription,
-            timestamp,
-          };
           const assistantMessage = {
-            id: generateMessageId("assistant", timestamp + 1),
+            id: generateMessageId("assistant", timestamp),
             role: "assistant" as const,
             content: fullResponse,
-            timestamp: timestamp + 1,
+            timestamp,
           };
           
-          setConversation((prev) => ({
-            ...prev,
-            messages: [
-              assistantMessage,
-              userMessage,
-              ...prev.messages,
-            ],
-            updatedAt: timestamp,
-            title: prev.title || generateConversationTitle(transcription),
-          }));
+          setConversation((prev) => {
+            const hasUserMsg = prev.messages.some((m) => m.role === "user" && m.content === transcription);
+            const userMsg = {
+              id: generateMessageId("user", timestamp - 1),
+              role: "user" as const,
+              content: transcription,
+              timestamp: timestamp - 1,
+            };
+
+            return {
+              ...prev,
+              messages: hasUserMsg
+                ? [assistantMessage, ...prev.messages]
+                : [assistantMessage, userMsg, ...prev.messages],
+              updatedAt: timestamp,
+              title: prev.title || generateConversationTitle(transcription),
+            };
+          });
         }
       } catch (err) {
         console.error("processWithAI error:", err);
