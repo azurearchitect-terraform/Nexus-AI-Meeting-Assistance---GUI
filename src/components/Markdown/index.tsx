@@ -40,20 +40,63 @@ export function Markdown({
 }
 
 /**
- * Raw streaming text view — no markdown parser, zero buffering.
- * Renders each line as it arrives from the AI stream.
- * Preserves markdown characters visually (bullets, bold, code) as plain text
- * so the user can read line-by-line in real time.
+ * Raw streaming text view with real-time smooth typewriter animation.
+ * Zero markdown parser buffering, line-by-line typing animation.
  */
 function StreamingTextView({ text }: { text: string }) {
-  const lines = text.split("\n");
+  const [displayedLength, setDisplayedLength] = React.useState(0);
+  const targetTextRef = React.useRef(text);
+  const currentLengthRef = React.useRef(0);
+  const animationFrameRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    targetTextRef.current = text;
+
+    // Reset if text was reset/cleared
+    if (text.length < currentLengthRef.current) {
+      currentLengthRef.current = 0;
+      setDisplayedLength(0);
+    }
+
+    const animate = () => {
+      const target = targetTextRef.current;
+      const current = currentLengthRef.current;
+
+      if (current < target.length) {
+        // Dynamic step speed: type faster if we fall behind target
+        const diff = target.length - current;
+        const step = diff > 60 ? 6 : diff > 20 ? 3 : 1;
+        const next = Math.min(target.length, current + step);
+        currentLengthRef.current = next;
+        setDisplayedLength(next);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+
+    if (animationFrameRef.current === null && currentLengthRef.current < text.length) {
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
+  }, [text]);
+
+  React.useEffect(() => {
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  const visibleText = text.slice(0, displayedLength);
+  const lines = visibleText.split("\n");
 
   return (
-    <div className="streaming-text-view font-mono text-[0.85rem] leading-relaxed whitespace-pre-wrap break-words">
+    <div className="streaming-text-view font-mono text-[0.85rem] leading-relaxed whitespace-pre-wrap break-words text-foreground">
       {lines.map((line, i) => {
         const isLast = i === lines.length - 1;
         return (
-          <div key={i} className="streaming-line">
+          <div key={i} className="streaming-line min-h-[1.25em]">
             {line}
             {isLast && (
               <span className="inline-block w-[2px] h-[1em] bg-primary align-middle ml-[1px] animate-pulse" />
