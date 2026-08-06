@@ -718,11 +718,21 @@ export function useSystemAudio() {
       
       const customPrompt = `You are an expert interview coach. Based on the interview transcript so far, and the following information about the company: \n\n[COMPANY CONTEXT START]\n${companyContext ? companyContext : "No company context provided"}\n[COMPANY CONTEXT END]\n\nGenerate 3 insightful, non-financial questions for the candidate to ask the interviewer at the end of the meeting. Focus on technology, culture, and specific project details. Format as a clear, concise bulleted list. Do not include introductory text, just the questions.`;
       
-      await processWithAI(action, customPrompt, previousMessages);
+      requestQueueRef.current.push({
+        transcription: action,
+        prompt: customPrompt,
+        previousMessages: previousMessages,
+      });
+      processQueue();
       return;
     }
 
-    await processWithAI(action, effectiveSystemPrompt, previousMessages);
+    requestQueueRef.current.push({
+      transcription: action,
+      prompt: effectiveSystemPrompt,
+      previousMessages: previousMessages,
+    });
+    processQueue();
   };
 
     const startContinuousRecording = useCallback(async () => {
