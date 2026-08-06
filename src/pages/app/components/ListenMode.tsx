@@ -688,21 +688,24 @@ ${messagesContent}`;
               </Button>
             </div>
           )}
-
-          {/* 1. Live Streaming Assistant Answer (Always at TOP when AI is generating) */}
-          {isAIProcessing && (
+          {/* Unified Real-time Streaming + Completed Answer View */}
+          {(isAIProcessing || lastAIResponse) && (
             <div className="pb-3 border-b border-primary/20 bg-primary/[0.03] p-3 rounded-lg">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-primary/10">
-                <div className="flex items-center gap-1.5 text-primary text-xs font-semibold">
-                  <SparklesIcon className="w-3.5 h-3.5 animate-spin" />
-                  <span>Generating Real-time Answer...</span>
+              {isAIProcessing && (
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-primary/10">
+                  <div className="flex items-center gap-1.5 text-primary text-xs font-semibold">
+                    <SparklesIcon className="w-3.5 h-3.5 animate-spin" />
+                    <span>Generating Real-time Answer...</span>
+                  </div>
+                  <span className="text-[10px] text-primary/70 font-mono animate-pulse">Streaming</span>
                 </div>
-                <span className="text-[10px] text-primary/70 font-mono animate-pulse">Streaming</span>
-              </div>
+              )}
               {lastAIResponse ? (
                 <div>
                   <Markdown isStreaming={true}>{lastAIResponse}</Markdown>
-                  <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
+                  {isAIProcessing && (
+                    <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground italic py-1">
@@ -713,21 +716,14 @@ ${messagesContent}`;
             </div>
           )}
 
-          {/* 2. Primary / Previous Assistant Answers */}
-          {!isAIProcessing && assistantMessages.length > 0 && (
+          {/* Previous Assistant Answers (below the current/latest one) */}
+          {assistantMessages.length > 1 && (
             <div className="space-y-4">
-              {assistantMessages.map((msg: any, index: number) => (
+              {assistantMessages.slice(1).map((msg: any, index: number) => (
                 <div key={msg.id || index} className="pb-3 border-b border-border/10 last:border-0 last:pb-0">
-                  {index === 0 && assistantMessages.length > 1 && (
-                    <div className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-wider mb-1">
-                      Latest Answer
-                    </div>
-                  )}
-                  {index > 0 && (
-                    <div className="text-[10px] uppercase font-bold text-muted-foreground/40 tracking-wider mb-1">
-                      Previous Answer ({index + 1})
-                    </div>
-                  )}
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground/40 tracking-wider mb-1">
+                    Previous Answer ({index + 2})
+                  </div>
                   <Markdown>{msg.content}</Markdown>
                 </div>
               ))}

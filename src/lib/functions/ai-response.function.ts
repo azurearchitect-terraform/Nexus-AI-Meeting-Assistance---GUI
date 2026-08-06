@@ -110,17 +110,27 @@ async function* fetchPluelyAIResponse(params: {
         return;
       }
 
-      // Start the streaming request using the new API response endpoint
-      await invoke("chat_stream_response", {
+      // Start the native request without awaiting it. The command emits
+      // chunks while it is running; awaiting it here would buffer the whole
+      // response before the generator gets a chance to yield anything.
+      let invokeError: unknown = null;
+      let invokeSettled = false;
+      const invokePromise = invoke("chat_stream_response", {
         userMessage,
         systemPrompt,
         imageBase64,
         history: historyString,
-      });
+      })
+        .catch((error) => {
+          invokeError = error;
+        })
+        .finally(() => {
+          invokeSettled = true;
+        });
 
       // Yield chunks as they come in
       let lastIndex = 0;
-      while (!streamComplete) {
+      while (!streamComplete || lastIndex < streamChunks.length || !invokeSettled) {
         // Check if aborted during streaming
         if (signal?.aborted) {
           unlisten();
@@ -140,11 +150,22 @@ async function* fetchPluelyAIResponse(params: {
           return;
         }
 
-        // Yield any new chunks
+        if (invokeError) {
+          throw invokeError;
+        }
+
+        // Yield any new chunks received since the previous poll
         for (let i = lastIndex; i < streamChunks.length; i++) {
           yield streamChunks[i];
         }
         lastIndex = streamChunks.length;
+      }
+
+      // Make sure the invocation has fully settled and surface any command
+      // error after all emitted chunks have been consumed.
+      await invokePromise;
+      if (invokeError) {
+        throw invokeError;
       }
 
       // Final abort check before yielding remaining chunks

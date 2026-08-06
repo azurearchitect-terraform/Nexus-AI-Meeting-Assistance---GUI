@@ -166,7 +166,7 @@ export const Input = ({
                   <span className="text-sm">Generating response...</span>
                 </div>
               )}
-              {response && <Markdown>{response}</Markdown>}
+              {response && <Markdown isStreaming={isLoading}>{response}</Markdown>}
 
               {/* Conversation History - Separate scroll, no auto-scroll */}
               {keepEngaged && conversationHistory.length > 1 && (
