@@ -47,7 +47,7 @@ function StreamingTextView({ text }: { text: string }) {
   const [displayedLength, setDisplayedLength] = React.useState(0);
   const targetTextRef = React.useRef(text);
   const currentLengthRef = React.useRef(0);
-  const animationFrameRef = React.useRef<number | null>(null);
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     targetTextRef.current = text;
@@ -58,32 +58,31 @@ function StreamingTextView({ text }: { text: string }) {
       setDisplayedLength(0);
     }
 
-    const animate = () => {
-      const target = targetTextRef.current;
-      const current = currentLengthRef.current;
+    if (!timerRef.current) {
+      timerRef.current = setInterval(() => {
+        const target = targetTextRef.current;
+        const current = currentLengthRef.current;
 
-      if (current < target.length) {
-        // Smooth human typing cadence: 1 to 2 characters per frame (~30-60 chars/sec)
-        const diff = target.length - current;
-        const step = diff > 100 ? 3 : diff > 40 ? 2 : 1;
-        const next = Math.min(target.length, current + step);
-        currentLengthRef.current = next;
-        setDisplayedLength(next);
-        animationFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        animationFrameRef.current = null;
-      }
-    };
-
-    if (animationFrameRef.current === null && currentLengthRef.current < text.length) {
-      animationFrameRef.current = requestAnimationFrame(animate);
+        if (current < target.length) {
+          // Advance smoothly character by character (or 2 if behind by > 50 chars)
+          const diff = target.length - current;
+          const step = diff > 80 ? 3 : diff > 30 ? 2 : 1;
+          const next = Math.min(target.length, current + step);
+          currentLengthRef.current = next;
+          setDisplayedLength(next);
+        } else if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      }, 15);
     }
   }, [text]);
 
   React.useEffect(() => {
     return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, []);

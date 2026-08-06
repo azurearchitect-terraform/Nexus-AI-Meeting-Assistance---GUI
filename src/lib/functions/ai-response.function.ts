@@ -554,7 +554,13 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
               provider?.responseContentPath || ""
             );
             if (delta) {
-              yield delta;
+              const tokens = delta.split(/(\s+)/);
+              for (const tok of tokens) {
+                if (!tok) continue;
+                if (signal?.aborted) return;
+                yield tok;
+                await new Promise((r) => setTimeout(r, 12));
+              }
             }
           } catch (e) {
             // Ignore parsing errors for partial JSON chunks
