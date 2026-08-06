@@ -63,9 +63,9 @@ function StreamingTextView({ text }: { text: string }) {
       const current = currentLengthRef.current;
 
       if (current < target.length) {
-        // Dynamic step speed: type faster if we fall behind target
+        // Smooth human typing cadence: 1 to 2 characters per frame (~30-60 chars/sec)
         const diff = target.length - current;
-        const step = diff > 60 ? 6 : diff > 20 ? 3 : 1;
+        const step = diff > 100 ? 3 : diff > 40 ? 2 : 1;
         const next = Math.min(target.length, current + step);
         currentLengthRef.current = next;
         setDisplayedLength(next);
