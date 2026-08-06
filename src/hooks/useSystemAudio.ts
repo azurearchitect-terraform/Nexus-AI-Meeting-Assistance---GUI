@@ -573,8 +573,8 @@ export function useSystemAudio() {
                         const prompt = useSystemPromptRef.current
                           ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                           : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                        processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                      }, 100);
+                        handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
+                      }, res.isFinal ? 100 : 800);
                     }
                   });
                 }
@@ -995,14 +995,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
-                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
+                
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPrompt
                     ? systemPrompt || DEFAULT_SYSTEM_PROMPT
                     : contextContent || DEFAULT_SYSTEM_PROMPT;
                   handleNewTranscription(res.transcript, prompt, conversation.messages);
-                }, 100);
+                }, res.isFinal ? 100 : 800);
               }
             });
           }
@@ -1034,14 +1034,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
-                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
+                
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPromptRef.current
                     ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                     : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                  processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                }, 100);
+                  handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
+                }, res.isFinal ? 100 : 800);
               }
             });
           }
@@ -1080,14 +1080,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
-                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
+                
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPromptRef.current
                     ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                     : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                  processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                }, 100);
+                  handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
+                }, res.isFinal ? 100 : 800);
               }
             });
           }
@@ -1118,14 +1118,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
-                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
+                
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPromptRef.current
                     ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                     : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                  processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                }, 100);
+                  handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
+                }, res.isFinal ? 100 : 800);
               }
             });
           }
@@ -1178,6 +1178,10 @@ export function useSystemAudio() {
         webSpeechRecognizer.stop();
       }
 
+      // Clear the AI processing queue
+      requestQueueRef.current = [];
+      isAIProcessingRef.current = false;
+
       // Abort any ongoing AI requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -1220,6 +1224,10 @@ export function useSystemAudio() {
       if (webSpeechRecognizer.isSupported()) {
         webSpeechRecognizer.stop();
       }
+
+      // Clear the AI processing queue
+      requestQueueRef.current = [];
+      isAIProcessingRef.current = false;
 
       // Abort any ongoing AI requests
       if (abortControllerRef.current) {
