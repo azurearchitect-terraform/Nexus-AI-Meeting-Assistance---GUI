@@ -717,11 +717,13 @@ ${messagesContent}`;
               )}
               
               <div className="space-y-6">
-                {/* 1. Currently Streaming Response (if any) */}
-                {isAIProcessing && lastAIResponse && (
+                {/* 1. Latest/Streaming Response — stays mounted through the streaming→complete transition */}
+                {lastAIResponse && (
                   <div>
-                    <Markdown isStreaming={true}>{lastAIResponse}</Markdown>
-                    <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
+                    <Markdown isStreaming={isAIProcessing}>{lastAIResponse}</Markdown>
+                    {isAIProcessing && (
+                      <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
+                    )}
                   </div>
                 )}
                 {isAIProcessing && !lastAIResponse && (
@@ -731,14 +733,10 @@ ${messagesContent}`;
                   </div>
                 )}
 
-                {/* 2. All Completed Answers (Rendered seamlessly without history downgrades) */}
-                {/* We map all assistant messages. If NOT processing, assistantMessages[0] is the most recent. 
-                    If processing, the new answer is streaming in lastAIResponse, so assistantMessages[0] is the PREVIOUS answer. */}
-                {assistantMessages.map((msg: any, index: number) => {
-                  // If we are NOT processing, and this is the very first message, AND it matches lastAIResponse exactly,
-                  // we can skip rendering it from the array if we already rendered it in lastAIResponse above.
-                  // BUT we changed the logic above to ONLY render lastAIResponse if isAIProcessing is true!
-                  // So we can safely render all assistantMessages here!
+                {/* 2. Previous Completed Answers — skip the most recent if it matches lastAIResponse (already shown above) */}
+                {assistantMessages
+                  .filter((msg: any, idx: number) => !(idx === 0 && lastAIResponse && msg.content === lastAIResponse))
+                  .map((msg: any, index: number) => {
                   return (
                     <div key={msg.id || index} className="border-b border-border/10 pb-4 last:border-0 last:pb-0">
                       <div className="text-[10px] uppercase font-bold text-muted-foreground/40 tracking-wider mb-2 flex items-center justify-between">
