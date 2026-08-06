@@ -7,6 +7,7 @@ import {
 } from "@/components";
 import { FollowUpPills } from "./FollowUpPills";
 import { ActionToolbar } from "./ActionToolbar";
+import { InterviewContextModal } from "./InterviewContextModal";
 import { useApp as useAppHook } from "@/hooks";
 import { useApp as useGlobalApp } from "@/contexts";
 import { fetchAIResponse } from "@/lib/functions";
@@ -34,7 +35,8 @@ import {
   PlusIcon,
   AlertTriangleIcon,
   KeyRoundIcon,
-  SettingsIcon
+  SettingsIcon,
+  BriefcaseIcon
 } from "lucide-react";
 import {
   Select,
@@ -65,6 +67,7 @@ export const ListenMode = () => {
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [showContextModal, setShowContextModal] = useState<boolean>(false);
 
   const answerScrollRef = useRef<HTMLDivElement>(null);
 
@@ -282,6 +285,7 @@ ${messagesContent}`;
   const handleFollowUpSelect = async (label: string) => {
     try {
       console.log("Follow up selected:", label);
+      await systemAudio.handleQuickActionClick(label);
     } catch (e) {
       console.error("Failed follow up:", e);
     }
@@ -397,6 +401,16 @@ ${messagesContent}`;
               >
                 <div className={`h-2 w-2 rounded-full ${capturing ? (isAiKeyMissing ? "bg-black animate-pulse" : "bg-white animate-pulse") : "bg-muted-foreground"} mr-1.5`} />
                 {capturing ? (isAiKeyMissing ? "Audio Active (No AI Key)" : "Listening") : "System Audio"}
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 w-7 rounded-full text-purple-500 hover:text-purple-600 hover:bg-purple-500/10"
+                onClick={() => setShowContextModal(true)}
+                title="Advanced Interview Settings (Company Context & Hint Mode)"
+              >
+                <BriefcaseIcon className="h-3.5 w-3.5" />
               </Button>
 
               <Button
@@ -689,8 +703,9 @@ ${messagesContent}`;
             </div>
           )}
           {/* Unified Real-time Streaming + Completed Answer View */}
-          {(isAIProcessing || lastAIResponse) && (
+          {(isAIProcessing || lastAIResponse || assistantMessages.length > 0) && (
             <div className="pb-3 border-b border-primary/20 bg-primary/[0.03] p-3 rounded-lg">
+              {/* If actively processing, show the streaming header */}
               {isAIProcessing && (
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-primary/10">
                   <div className="flex items-center gap-1.5 text-primary text-xs font-semibold">
@@ -700,33 +715,41 @@ ${messagesContent}`;
                   <span className="text-[10px] text-primary/70 font-mono animate-pulse">Streaming</span>
                 </div>
               )}
-              {lastAIResponse ? (
-                <div>
-                  <Markdown isStreaming={true}>{lastAIResponse}</Markdown>
-                  {isAIProcessing && (
+              
+              <div className="space-y-6">
+                {/* 1. Currently Streaming Response (if any) */}
+                {isAIProcessing && lastAIResponse && (
+                  <div>
+                    <Markdown isStreaming={true}>{lastAIResponse}</Markdown>
                     <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground italic py-1">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                  <span>Formulating suggested response...</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Previous Assistant Answers (below the current/latest one) */}
-          {assistantMessages.length > 1 && (
-            <div className="space-y-4">
-              {assistantMessages.slice(1).map((msg: any, index: number) => (
-                <div key={msg.id || index} className="pb-3 border-b border-border/10 last:border-0 last:pb-0">
-                  <div className="text-[10px] uppercase font-bold text-muted-foreground/40 tracking-wider mb-1">
-                    Previous Answer ({index + 2})
                   </div>
-                  <Markdown>{msg.content}</Markdown>
-                </div>
-              ))}
+                )}
+                {isAIProcessing && !lastAIResponse && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground italic py-1">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    <span>Formulating suggested response...</span>
+                  </div>
+                )}
+
+                {/* 2. All Completed Answers (Rendered seamlessly without history downgrades) */}
+                {/* We map all assistant messages. If NOT processing, assistantMessages[0] is the most recent. 
+                    If processing, the new answer is streaming in lastAIResponse, so assistantMessages[0] is the PREVIOUS answer. */}
+                {assistantMessages.map((msg: any, index: number) => {
+                  // If we are NOT processing, and this is the very first message, AND it matches lastAIResponse exactly,
+                  // we can skip rendering it from the array if we already rendered it in lastAIResponse above.
+                  // BUT we changed the logic above to ONLY render lastAIResponse if isAIProcessing is true!
+                  // So we can safely render all assistantMessages here!
+                  return (
+                    <div key={msg.id || index} className="border-b border-border/10 pb-4 last:border-0 last:pb-0">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground/40 tracking-wider mb-2 flex items-center justify-between">
+                        <span>Answer {assistantMessages.length - index}</span>
+                        <span className="font-mono text-[9px]">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                      </div>
+                      <Markdown>{msg.content}</Markdown>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -850,6 +873,11 @@ ${messagesContent}`;
           </div>
         </div>
       )}
+
+      <InterviewContextModal 
+        open={showContextModal} 
+        onOpenChange={setShowContextModal} 
+      />
     </div>
   );
 };

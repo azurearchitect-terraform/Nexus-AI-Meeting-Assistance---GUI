@@ -164,6 +164,10 @@ export function useSystemAudio() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const speechDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef<boolean>(false);
+  const isAIProcessingRef = useRef<boolean>(false);
+  const lastProcessedTranscriptionRef = useRef<string>("");
+  type AIRequest = { transcription: string, prompt: string, previousMessages: Message[], imagesBase64?: string[] };
+  const requestQueueRef = useRef<AIRequest[]>([]);
   const sessionMemoryRef = useRef<Message[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -308,6 +312,7 @@ export function useSystemAudio() {
             updatedAt: Date.now(),
           });
           setLastTranscription("");
+      lastProcessedTranscriptionRef.current = "";
           setLastAIResponse("");
           setError("");
           setRecordingProgress(0);
@@ -563,13 +568,13 @@ export function useSystemAudio() {
                     if (res.transcript && res.transcript.trim()) {
                       setLastTranscription(res.transcript);
                       if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                      const delay = res.isFinal ? 100 : 800;
+                      
                       speechDebounceRef.current = setTimeout(() => {
                         const prompt = useSystemPromptRef.current
                           ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                           : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
                         processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                      }, delay);
+                      }, 100);
                     }
                   });
                 }
@@ -884,31 +889,75 @@ export function useSystemAudio() {
         console.error("processWithAI error:", err);
       } finally {
         setIsAIProcessing(false);
-        // Only restart native VAD if Rust says it stopped (vadActiveRef = false)
-        // If vadActiveRef = true, the Rust loop is already listening continuously
-        if (vadConfigRef.current.enabled && capturingRef.current && !vadActiveRef.current) {
-          const deviceId =
-            selectedAudioDevices.output.id !== "default"
-              ? selectedAudioDevices.output.id
-              : null;
-          // Small delay to allow Rust task cleanup before restart
-          setTimeout(() => {
-            if (capturingRef.current && !vadActiveRef.current) {
-              invoke("start_system_audio_capture", {
-                vadConfig: vadConfigRef.current,
-                deviceId: deviceId,
-              }).then(() => {
-                vadActiveRef.current = true;
-              }).catch(() => {
-                console.warn("Native VAD restart skipped (likely already running)");
-              });
-            }
-          }, 200);
-        }
       }
     },
     [selectedAIProvider, allAiProviders, vadConfig, capturing, selectedAudioDevices.output.id]
   );
+
+  const processQueue = useCallback(async () => {
+    if (isAIProcessingRef.current || requestQueueRef.current.length === 0) return;
+    isAIProcessingRef.current = true;
+    
+    try {
+      while (requestQueueRef.current.length > 0) {
+        const req = requestQueueRef.current.shift();
+        if (!req) continue;
+        await processWithAI(req.transcription, req.prompt, req.previousMessages, req.imagesBase64);
+      }
+    } finally {
+      isAIProcessingRef.current = false;
+      
+      // Attempt to safely restart native VAD if needed
+      if (vadConfigRef.current.enabled && capturingRef.current && !vadActiveRef.current) {
+        const deviceId = isTestMicEnabled
+          ? (selectedAudioDevices.input.id !== "default" ? selectedAudioDevices.input.id : null)
+          : (selectedAudioDevices.output.id !== "default" ? selectedAudioDevices.output.id : null);
+        
+        setTimeout(() => {
+          if (capturingRef.current && !vadActiveRef.current) {
+            import("@tauri-apps/api/core").then(({ invoke }) => {
+                invoke("start_system_audio_capture", {
+                  vadConfig: vadConfigRef.current,
+                  deviceId: deviceId,
+                  isInput: isTestMicEnabled
+                }).then(() => {
+                  vadActiveRef.current = true;
+                }).catch(() => {
+                  console.warn("Native VAD restart skipped");
+                });
+            });
+          }
+        }, 200);
+      }
+    }
+  }, [processWithAI, isTestMicEnabled, selectedAudioDevices]);
+
+  const handleNewTranscription = useCallback((
+    transcription: string,
+    prompt: string,
+    previousMessages: Message[],
+    imagesBase64?: string[]
+  ) => {
+      let newTextToProcess = transcription;
+      if (lastProcessedTranscriptionRef.current && transcription.startsWith(lastProcessedTranscriptionRef.current)) {
+         newTextToProcess = transcription.substring(lastProcessedTranscriptionRef.current.length).trim();
+      }
+
+      if (!newTextToProcess) return;
+
+      lastProcessedTranscriptionRef.current = transcription;
+
+      const isDuplicate = requestQueueRef.current.some(req => req.transcription === newTextToProcess);
+      if (isDuplicate) return;
+
+      requestQueueRef.current.push({
+        transcription: newTextToProcess,
+        prompt,
+        previousMessages,
+        imagesBase64
+      });
+      processQueue();
+  }, [processQueue]);
 
   const startCapture = useCallback(async () => {
     try {
@@ -946,14 +995,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
+                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                const delay = res.isFinal ? 100 : 800;
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPrompt
                     ? systemPrompt || DEFAULT_SYSTEM_PROMPT
                     : contextContent || DEFAULT_SYSTEM_PROMPT;
-                  processWithAI(res.transcript, prompt, conversation.messages);
-                }, delay);
+                  handleNewTranscription(res.transcript, prompt, conversation.messages);
+                }, 100);
               }
             });
           }
@@ -985,14 +1034,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
+                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                const delay = res.isFinal ? 100 : 800;
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPromptRef.current
                     ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                     : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
                   processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                }, delay);
+                }, 100);
               }
             });
           }
@@ -1031,14 +1080,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
+                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                const delay = res.isFinal ? 100 : 800;
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPromptRef.current
                     ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                     : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
                   processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                }, delay);
+                }, 100);
               }
             });
           }
@@ -1069,14 +1118,14 @@ export function useSystemAudio() {
             webSpeechRecognizer.start((res) => {
               if (res.transcript && res.transcript.trim()) {
                 setLastTranscription(res.transcript);
+                if (!res.isFinal) return;
                 if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                const delay = res.isFinal ? 100 : 800;
                 speechDebounceRef.current = setTimeout(() => {
                   const prompt = useSystemPromptRef.current
                     ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                     : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
                   processWithAI(res.transcript, prompt, conversationRef.current.messages);
-                }, delay);
+                }, 100);
               }
             });
           }
@@ -1147,6 +1196,7 @@ export function useSystemAudio() {
       setIsRecordingInContinuousMode(false);
       setRecordingProgress(0);
       setLastTranscription("");
+      lastProcessedTranscriptionRef.current = "";
       setLastAIResponse("");
       setError("");
       setIsPopoverOpen(false);
@@ -1336,6 +1386,7 @@ export function useSystemAudio() {
       updatedAt: 0,
     });
     setLastTranscription("");
+      lastProcessedTranscriptionRef.current = "";
     setLastAIResponse("");
     setError("");
     setSetupRequired(false);
@@ -1455,6 +1506,7 @@ export function useSystemAudio() {
       updatedAt: Date.now(),
     });
     setLastTranscription("");
+      lastProcessedTranscriptionRef.current = "";
     setLastAIResponse("");
   }, []);
 

@@ -23,10 +23,27 @@ export const STORAGE_KEYS = {
   SUPPORTS_IMAGES: "supports_images",
   // Stores API keys per-provider so they survive switching to Auto mode
   PROVIDER_API_KEYS: "provider_api_keys",
+  
+  // Advanced Interview Features
+  RESPONSE_STYLE: "response_style", // 'script' | 'hint'
+  TARGET_COMPANY: "target_company",
+  JOB_DESCRIPTION: "job_description",
 } as const;
 
 // Max number of files that can be attached to a message
 export const MAX_FILES = 6;
+
+export const HINT_MODE_CONSTRAINTS = `
+## HINT MODE ENFORCED
+- DO NOT WRITE FULL SENTENCES. DO NOT WRITE A SCRIPT.
+- You are acting as a teleprompter cue for an experienced senior architect.
+- Provide ONLY 3 to 5 critical keywords, metrics, or technical phrases.
+- Example: 
+  - "Mention 15% latency drop"
+  - "STAR: ExpressRoute migration"
+  - "Focus: Azure Landing Zones"
+- Make it extremely punchy and fast to read at a glance.
+`;
 
 export const UNIVERSAL_CONSTRAINTS = `
 ## Universal Constraints & Real-Time Speaking Format
