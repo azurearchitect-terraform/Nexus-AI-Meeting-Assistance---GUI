@@ -6,3 +6,4 @@ export * from "./prompt-router.function";
 export * from "./webspeech.stt";
 export * from "./api-validation";
 export * from "./company-context.function";
+export * from "./company-prep.function";

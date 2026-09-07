@@ -135,14 +135,44 @@ pub async fn trigger_openai_star_synthesis(
         *lock = true;
     }
 
-    // Rule 4: System Prompt with STAR Method formatting and candidate context
+    // Adaptive system prompt: STAR for behavioral, structured for technical
+    let question_lower = user_question.to_lowercase();
+    let is_behavioral = question_lower.contains("tell me about a time")
+        || question_lower.contains("describe a situation")
+        || question_lower.contains("give me an example")
+        || question_lower.contains("how do you handle")
+        || question_lower.contains("tell me about yourself")
+        || question_lower.contains("walk me through")
+        || question_lower.contains("biggest challenge")
+        || question_lower.contains("conflict")
+        || question_lower.contains("failure")
+        || question_lower.contains("leadership");
+
+    let format_instruction = if is_behavioral {
+        "FORMAT: Use the STAR method (Situation, Task, Action, Result).\n\
+        - Situation: 1-2 sentences with specific context.\n\
+        - Task: Your responsibility.\n\
+        - Action: Concrete steps YOU took (use \"I\", not \"we\").\n\
+        - Result: Quantified business impact (metrics, percentages, cost savings).\n\
+        Output as concise, scannable sentences separated by line breaks for live teleprompter reading."
+    } else {
+        "FORMAT: Structured technical answer.\n\
+        - Line 1: Direct answer or architectural decision.\n\
+        - Following lines: 2-4 concise points covering trade-offs, scalability, security, and cost.\n\
+        - Explain WHY a technology is chosen; connect services together.\n\
+        - For system design: Requirements → Architecture → Deep-dive → Failure modes → Capacity.\n\
+        Output as short, scannable sentences separated by line breaks for live teleprompter reading."
+    };
+
     let system_instruction = format!(
         "You are my real-time AI Interview Co-Pilot & Technical Architect.\n\n\
         YOUR TASK:\n\
-        Format your answer strictly using the STAR method (Situation, Task, Action, Result) based on the candidate's Resume and target Job Description provided below.\n\
-        Output concise, scannable bullet points suitable for live teleprompter reading during an interview.\n\n\
+        Answer the interview question using the candidate's Resume and target Job Description below.\n\
+        Never say you are an AI. Speak as the candidate in first person.\n\n\
+        {}\n\n\
         ### CANDIDATE RESUME ###\n{}\n\n\
         ### TARGET JOB DESCRIPTION ###\n{}",
+        format_instruction,
         if resume.trim().is_empty() { "Not provided" } else { &resume },
         if job_description.trim().is_empty() { "Not provided" } else { &job_description }
     );

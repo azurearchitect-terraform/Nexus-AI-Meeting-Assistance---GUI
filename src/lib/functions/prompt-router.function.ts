@@ -145,10 +145,26 @@ export async function routePrompt(
     if (p) return { systemPrompt: p.systemPrompt, personaName: p.name };
   }
 
-  // 8. Azure Solutions Architect (Default for technical/architecture/infrastructure)
+  // 8. Fallback: enrich default persona with available company/role context
   const defaultPersona = PERSONAS[0];
+  let enrichedPrompt = defaultPersona?.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+
+  const targetCompany = typeof localStorage !== "undefined" ? localStorage.getItem("target_company") || "" : "";
+  const targetRole = typeof localStorage !== "undefined" ? localStorage.getItem("target_role") || "" : "";
+  const jobDescription = typeof localStorage !== "undefined" ? localStorage.getItem("job_description") || "" : "";
+
+  if (targetCompany || targetRole || jobDescription) {
+    const contextBlock = [
+      targetCompany && `Target Company: ${targetCompany}`,
+      targetRole && `Target Role: ${targetRole}`,
+      jobDescription && `Key JD Focus: ${jobDescription.substring(0, 500)}`,
+    ].filter(Boolean).join("\n");
+
+    enrichedPrompt = `${enrichedPrompt}\n\n## Active Interview Context (use silently to tailor answers)\n${contextBlock}`;
+  }
+
   return {
-    systemPrompt: defaultPersona?.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+    systemPrompt: enrichedPrompt,
     personaName: defaultPersona?.name || "Azure Solutions Architect",
   };
 }

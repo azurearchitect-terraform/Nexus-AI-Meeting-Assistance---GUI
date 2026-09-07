@@ -559,26 +559,12 @@ export function useSystemAudio() {
                 setError(`${errMsg}`);
               }
               
-              // Fallback to offline local WebSpeech without killing native audio task
+              // Removed fallback to webSpeechRecognizer to ensure native loopback audio continues
               setIsOfflineMode(true);
-
-              if (webSpeechRecognizer.isSupported()) {
-                if (!webSpeechRecognizer.isListening) {
-                  webSpeechRecognizer.start((res) => {
-                    if (res.transcript && res.transcript.trim()) {
-                      setLastTranscription(res.transcript);
-                      if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                      
-                      speechDebounceRef.current = setTimeout(() => {
-                        const prompt = useSystemPromptRef.current
-                          ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
-                          : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                        handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
-                      }, res.isFinal ? 100 : 800);
-                    }
-                  });
-                }
-              }
+              // We need to stop the Rust backend capture first
+              try {
+                await invoke("stop_system_audio_capture");
+              } catch (e) {}
             }
           } catch (err) {
             setError("Failed to process speech");
@@ -942,32 +928,7 @@ export function useSystemAudio() {
     }
   }, [processWithAI, isTestMicEnabled, selectedAudioDevices]);
 
-  const handleNewTranscription = useCallback((
-    transcription: string,
-    prompt: string,
-    previousMessages: Message[],
-    imagesBase64?: string[]
-  ) => {
-      let newTextToProcess = transcription;
-      if (lastProcessedTranscriptionRef.current && transcription.startsWith(lastProcessedTranscriptionRef.current)) {
-         newTextToProcess = transcription.substring(lastProcessedTranscriptionRef.current.length).trim();
-      }
 
-      if (!newTextToProcess) return;
-
-      lastProcessedTranscriptionRef.current = transcription;
-
-      const isDuplicate = requestQueueRef.current.some(req => req.transcription === newTextToProcess);
-      if (isDuplicate) return;
-
-      requestQueueRef.current.push({
-        transcription: newTextToProcess,
-        prompt,
-        previousMessages,
-        imagesBase64
-      });
-      processQueue();
-  }, [processQueue]);
 
   const startCapture = useCallback(async () => {
     try {
@@ -994,31 +955,7 @@ export function useSystemAudio() {
         return;
       }
 
-      // Check if we have online STT setup, otherwise default to offline WebSpeech
-      const usePluelyAPI = await shouldUsePluelyAPI();
-      const hasOnlineSTT = !!selectedSttProvider.provider || usePluelyAPI;
 
-      if (!hasOnlineSTT) {
-        setIsOfflineMode(true);
-        if (webSpeechRecognizer.isSupported()) {
-          if (!webSpeechRecognizer.isListening) {
-            webSpeechRecognizer.start((res) => {
-              if (res.transcript && res.transcript.trim()) {
-                setLastTranscription(res.transcript);
-                if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                
-                speechDebounceRef.current = setTimeout(() => {
-                  const prompt = useSystemPrompt
-                    ? systemPrompt || DEFAULT_SYSTEM_PROMPT
-                    : contextContent || DEFAULT_SYSTEM_PROMPT;
-                  handleNewTranscription(res.transcript, prompt, conversation.messages);
-                }, res.isFinal ? 100 : 800);
-              }
-            });
-          }
-        }
-        return;
-      }
 
       // VAD mode: native capture is PRIMARY
       await invoke<string>("stop_system_audio_capture").catch(() => {});
@@ -1036,26 +973,9 @@ export function useSystemAudio() {
         });
         vadActiveRef.current = true;
       } catch (nativeErr) {
-        console.warn("Native audio capture failed, switching to offline mode:", nativeErr);
+        console.warn("Native audio capture failed:", nativeErr);
         setIsOfflineMode(true);
-        // Fallback: use WebSpeech API continuously
-        if (webSpeechRecognizer.isSupported()) {
-          if (!webSpeechRecognizer.isListening) {
-            webSpeechRecognizer.start((res) => {
-              if (res.transcript && res.transcript.trim()) {
-                setLastTranscription(res.transcript);
-                if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                
-                speechDebounceRef.current = setTimeout(() => {
-                  const prompt = useSystemPromptRef.current
-                    ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
-                    : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                  handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
-                }, res.isFinal ? 100 : 800);
-              }
-            });
-          }
-        }
+        setError("Native audio capture failed: " + nativeErr);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -1079,31 +999,7 @@ export function useSystemAudio() {
         return;
       }
 
-      // Check if we have online STT setup, otherwise default to offline WebSpeech
-      const usePluelyAPI = await shouldUsePluelyAPI();
-      const hasOnlineSTT = !!selectedSttProviderRef.current.provider || usePluelyAPI;
 
-      if (!hasOnlineSTT) {
-        setIsOfflineMode(true);
-        if (webSpeechRecognizer.isSupported()) {
-          if (!webSpeechRecognizer.isListening) {
-            webSpeechRecognizer.start((res) => {
-              if (res.transcript && res.transcript.trim()) {
-                setLastTranscription(res.transcript);
-                if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                
-                speechDebounceRef.current = setTimeout(() => {
-                  const prompt = useSystemPromptRef.current
-                    ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
-                    : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                  handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
-                }, res.isFinal ? 100 : 800);
-              }
-            });
-          }
-        }
-        return;
-      }
 
       // VAD mode: native capture is PRIMARY
       await invoke<string>("stop_system_audio_capture").catch(() => {});
@@ -1121,25 +1017,9 @@ export function useSystemAudio() {
         });
         vadActiveRef.current = true;
       } catch (nativeErr) {
-        console.warn("Native audio capture failed, switching to offline mode:", nativeErr);
+        console.warn("Native audio capture failed:", nativeErr);
         setIsOfflineMode(true);
-        if (webSpeechRecognizer.isSupported()) {
-          if (!webSpeechRecognizer.isListening) {
-            webSpeechRecognizer.start((res) => {
-              if (res.transcript && res.transcript.trim()) {
-                setLastTranscription(res.transcript);
-                if (speechDebounceRef.current) clearTimeout(speechDebounceRef.current);
-                
-                speechDebounceRef.current = setTimeout(() => {
-                  const prompt = useSystemPromptRef.current
-                    ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
-                    : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
-                  handleNewTranscription(res.transcript, prompt, conversationRef.current.messages);
-                }, res.isFinal ? 100 : 800);
-              }
-            });
-          }
-        }
+        setError("Native audio capture failed: " + nativeErr);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);

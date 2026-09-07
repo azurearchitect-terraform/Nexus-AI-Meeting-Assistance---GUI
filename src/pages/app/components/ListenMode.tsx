@@ -71,6 +71,25 @@ export const ListenMode = () => {
 
   const answerScrollRef = useRef<HTMLDivElement>(null);
 
+  const { systemAudio } = useAppHook();
+  const {
+    capturing,
+    isProcessing,
+    isAIProcessing,
+    lastTranscription,
+    lastAIResponse,
+    startCapture,
+    stopCapture,
+    recordingProgress,
+    conversation,
+    clearConversation,
+    activePersonaName,
+    usedLocalKnowledge,
+    scanDocuments,
+    isTestMicEnabled,
+    setIsTestMicEnabled,
+  } = systemAudio;
+
   const TEXT_COLORS = [
     { label: "Default", value: "inherit", bg: "bg-foreground" },
     { label: "White", value: "#ffffff", bg: "bg-white" },
@@ -94,24 +113,7 @@ export const ListenMode = () => {
     };
   }, []);
 
-  const { systemAudio } = useAppHook();
-  const {
-    capturing,
-    isProcessing,
-    isAIProcessing,
-    lastTranscription,
-    lastAIResponse,
-    startCapture,
-    stopCapture,
-    recordingProgress,
-    conversation,
-    clearConversation,
-    activePersonaName,
-    usedLocalKnowledge,
-    scanDocuments,
-    isTestMicEnabled,
-    setIsTestMicEnabled,
-  } = systemAudio;
+
   const { selectedAIProvider } = useGlobalApp();
 
   const bank = getAllPersistedProviderKeys();
@@ -721,9 +723,6 @@ ${messagesContent}`;
                 {lastAIResponse && (
                   <div>
                     <Markdown isStreaming={isAIProcessing}>{lastAIResponse}</Markdown>
-                    {isAIProcessing && (
-                      <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-1 align-middle" />
-                    )}
                   </div>
                 )}
                 {isAIProcessing && !lastAIResponse && (

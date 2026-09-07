@@ -75,10 +75,7 @@ export const ResultsSection = ({
                 </div>
               ) : (
                 <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <Markdown>{lastAIResponse}</Markdown>
-                  {isAIProcessing && (
-                    <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1 align-middle" />
-                  )}
+                  <Markdown isStreaming={isAIProcessing}>{lastAIResponse}</Markdown>
                 </div>
               )}
             </div>
@@ -107,10 +104,7 @@ export const ResultsSection = ({
                 </div>
               ) : (
                 <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
-                  <Markdown>{lastAIResponse}</Markdown>
-                  {isAIProcessing && (
-                    <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1 align-middle" />
-                  )}
+                  <Markdown isStreaming={isAIProcessing}>{lastAIResponse}</Markdown>
                 </div>
               )}
             </div>

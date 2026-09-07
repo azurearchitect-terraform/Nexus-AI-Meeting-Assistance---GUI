@@ -24,12 +24,19 @@ import {
   WandIcon,
   RotateCcwIcon,
   ChevronUpIcon,
+  CopyIcon,
+  CheckIcon,
 } from "lucide-react";
 import { VadConfig } from "@/hooks/useSystemAudio";
 import {
   getAllPrompts,
   getPromptTemplateById,
 } from "@/lib/platform-instructions";
+import {
+  CompanyPrepData,
+  getStoredCompanyPrep,
+  prepareCompanyPrep,
+} from "@/lib/functions";
 import { cn } from "@/lib/utils";
 
 // Sensitivity presets for simpler UX
@@ -83,6 +90,18 @@ export const SettingsPanel = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [templates, setTemplates] = useState(getAllPrompts());
+  const [companyPrep, setCompanyPrep] = useState<CompanyPrepData | null>(
+    () => getStoredCompanyPrep()
+  );
+  const [isPreparingCompany, setIsPreparingCompany] = useState(false);
+  const [companyPrepError, setCompanyPrepError] = useState("");
+  const [targetRole, setTargetRole] = useState(
+    safeLocalStorage.getItem(STORAGE_KEYS.TARGET_ROLE) || ""
+  );
+  const [jobDescription, setJobDescription] = useState(
+    safeLocalStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION) || ""
+  );
+  const [copiedQuestionIndex, setCopiedQuestionIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const handlePromptsUpdated = () => setTemplates(getAllPrompts());
@@ -98,6 +117,64 @@ export const SettingsPanel = ({
       if (unlisten) unlisten();
     };
   }, []);
+
+  useEffect(() => {
+    const url = companyUrl.trim();
+    if (!url) {
+      setCompanyPrep(null);
+      setCompanyPrepError("");
+      return;
+    }
+
+    let isCancelled = false;
+    const timer = setTimeout(async () => {
+      setIsPreparingCompany(true);
+      setCompanyPrepError("");
+      try {
+        const prep = await prepareCompanyPrep(url);
+        if (!isCancelled) {
+          setCompanyPrep(prep);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setCompanyPrepError("Could not prepare company details right now.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsPreparingCompany(false);
+        }
+      }
+    }, 900);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [companyUrl, targetRole, jobDescription]);
+
+  const handleCopyQuestion = async (question: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(question);
+      setCopiedQuestionIndex(idx);
+      setTimeout(() => setCopiedQuestionIndex(null), 1400);
+    } catch {
+      setCompanyPrepError("Could not copy question. Clipboard permission denied.");
+    }
+  };
+
+  const handleRefreshCompanyPrep = async () => {
+    if (!companyUrl.trim()) return;
+    setIsPreparingCompany(true);
+    setCompanyPrepError("");
+    try {
+      const prep = await prepareCompanyPrep(companyUrl, { forceRefresh: true });
+      setCompanyPrep(prep);
+    } catch {
+      setCompanyPrepError("Could not refresh company details.");
+    } finally {
+      setIsPreparingCompany(false);
+    }
+  };
 
   // Determine current sensitivity preset based on values
   const getCurrentPreset = (): SensitivityPreset | "custom" => {
@@ -251,6 +328,16 @@ export const SettingsPanel = ({
                   For "Reverse Interview" questions
                 </p>
               </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-6 text-[10px]"
+                disabled={isPreparingCompany || !companyUrl.trim()}
+                onClick={handleRefreshCompanyPrep}
+              >
+                {isPreparingCompany ? "Preparing..." : "Refresh Prep"}
+              </Button>
             </div>
             <Input
               placeholder="https://example.com"
@@ -261,6 +348,79 @@ export const SettingsPanel = ({
                 safeLocalStorage.setItem(STORAGE_KEYS.COMPANY_URL, e.target.value);
               }}
             />
+
+            <div className="mt-2 grid gap-2">
+              <Input
+                placeholder="Target role title (e.g. Principal Cloud Architect)"
+                className="h-7 text-xs bg-muted/30"
+                value={targetRole}
+                onChange={(e) => {
+                  setTargetRole(e.target.value);
+                  safeLocalStorage.setItem(STORAGE_KEYS.TARGET_ROLE, e.target.value);
+                }}
+              />
+              <Textarea
+                placeholder="Paste job description or core responsibilities"
+                className="min-h-16 resize-none text-xs bg-muted/30"
+                value={jobDescription}
+                onChange={(e) => {
+                  setJobDescription(e.target.value);
+                  safeLocalStorage.setItem(STORAGE_KEYS.JOB_DESCRIPTION, e.target.value);
+                }}
+              />
+            </div>
+
+            <div className="mt-2 rounded-md border border-border/50 bg-background/40 p-2">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                Auto Company Prep
+              </p>
+
+              {companyPrepError && (
+                <p className="mt-1 text-[10px] text-red-500">{companyPrepError}</p>
+              )}
+
+              {!companyPrepError && isPreparingCompany && (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Fetching company details and preparing interviewer questions...
+                </p>
+              )}
+
+              {!companyPrepError && !isPreparingCompany && companyPrep && (
+                <>
+                  <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2">
+                    {companyPrep.summary || "Company details prepared."}
+                  </p>
+                  <div className="mt-2 space-y-1.5">
+                    {companyPrep.shortQuestions.slice(0, 5).map((question, idx) => (
+                      <div key={`${question}-${idx}`} className="flex items-start gap-1.5">
+                        <p className="text-[10px] text-foreground/90 flex-1 leading-snug">
+                          {idx + 1}. {question}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-5 px-1.5"
+                          onClick={() => void handleCopyQuestion(question, idx)}
+                        >
+                          {copiedQuestionIndex === idx ? (
+                            <CheckIcon className="w-3 h-3" />
+                          ) : (
+                            <CopyIcon className="w-3 h-3" />
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {!companyPrepError && !isPreparingCompany && !companyPrep && companyUrl.trim() && (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Add a valid URL to generate company prep.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Context Section */}
