@@ -8,6 +8,7 @@ import {
 } from "../company-intel";
 import { fetchAIResponse } from "./ai-response.function";
 import { TYPE_PROVIDER } from "@/types";
+import { AI_PROVIDERS } from "@/config";
 
 export const STORAGE_KEY_COMPANY_INTEL = "company_prep_data";
 export const EVENT_COMPANY_INTEL_UPDATED = "nexus_company_intel_updated";
@@ -147,11 +148,32 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
     `Crawl completed (${scrape.quality.toUpperCase()}, ${scrape.pages_crawled} page(s)). Synthesizing grounded company intel...`
   );
 
+  let resolvedSelectedProvider = selectedProvider;
+  if (!resolvedSelectedProvider || !resolvedSelectedProvider.provider) {
+    try {
+      const saved = localStorage.getItem("selected_ai_provider");
+      if (saved) {
+        resolvedSelectedProvider = JSON.parse(saved);
+      }
+    } catch {}
+    if (!resolvedSelectedProvider || !resolvedSelectedProvider.provider) {
+      resolvedSelectedProvider = { provider: "auto", variables: {} };
+    }
+  }
+
+  let resolvedProvider: TYPE_PROVIDER | undefined = provider;
+  if (!resolvedProvider || typeof resolvedProvider !== "object" || !("curl" in resolvedProvider)) {
+    const providerId =
+      (typeof resolvedProvider === "string" ? resolvedProvider : (resolvedProvider as any)?.id) ||
+      resolvedSelectedProvider.provider;
+    resolvedProvider = AI_PROVIDERS.find((p) => p.id === providerId) || AI_PROVIDERS[0];
+  }
+
   const { system, user } = companyIntelPrompt(scrape.text, jdText ?? null, profile, scrape.quality);
 
   const stream = fetchAIResponse({
-    provider,
-    selectedProvider: selectedProvider ?? { provider: "auto", variables: {} },
+    provider: resolvedProvider,
+    selectedProvider: resolvedSelectedProvider,
     systemPrompt: system,
     userMessage: user,
     signal,
@@ -161,6 +183,14 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
   for await (const chunk of stream) {
     if (signal?.aborted) throw new Error("Analysis aborted by user");
     raw += chunk;
+  }
+
+  if (!raw.trim()) {
+    throw new Error("No response received from AI model. Please verify your AI provider and API key in Settings.");
+  }
+
+  if (raw.includes("API Key Missing") || raw.includes("No API keys found") || raw.startsWith("⚠️")) {
+    throw new Error(raw.replace(/^⚠️\s*/, "").trim());
   }
 
   onProgress?.("Validating grounded intelligence schema...");

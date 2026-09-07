@@ -12,7 +12,7 @@ import curl2Json from "@bany/curl-to-json";
 import { shouldUsePluelyAPI } from "./pluely.api";
 import { CHUNK_POLL_INTERVAL_MS } from "../chat-constants";
 import { getResponseSettings, RESPONSE_LENGTHS, LANGUAGES } from "@/lib";
-import { MARKDOWN_FORMATTING_INSTRUCTIONS } from "@/config/constants";
+import { MARKDOWN_FORMATTING_INSTRUCTIONS, AI_PROVIDERS } from "@/config";
 import { searchLocalMemory } from "../database/rag.action";
 import { resolveAutoRoute, buildRoutedProviderConfig } from "./auto-router.function";
 import {
@@ -245,7 +245,7 @@ export async function* fetchAIResponse(params: {
   signal?: AbortSignal;
 }): AsyncIterable<string> {
   try {
-    const {
+    let {
       provider,
       selectedProvider,
       systemPrompt,
@@ -326,11 +326,19 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
     }
     // ── End Auto-Routing ──────────────────────────────────────────────────────
 
-    if (!provider) {
-      throw new Error(`Provider not provided`);
+    // If provider is missing, a string ID, or lacks curl definition, resolve it from AI_PROVIDERS
+    if (!provider || typeof provider !== "object" || !provider.curl) {
+      const providerId =
+        (typeof provider === "string" ? provider : (provider as any)?.id) ||
+        selectedProvider?.provider;
+      provider = AI_PROVIDERS.find((p) => p.id === providerId) || AI_PROVIDERS[0];
     }
+
     if (!selectedProvider) {
-      throw new Error(`Selected provider not provided`);
+      selectedProvider = {
+        provider: provider?.id || "auto",
+        variables: {},
+      };
     }
 
     let curlJson;

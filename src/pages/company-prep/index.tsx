@@ -154,7 +154,7 @@ function QuestionCard({
 }
 
 const CompanyPrep = () => {
-  const { selectedAIProvider } = useApp();
+  const { selectedAIProvider, allAiProviders } = useApp();
 
   const [url, setUrl] = useState("");
   const [targetRole, setTargetRole] = useState(() => {
@@ -192,6 +192,10 @@ const CompanyPrep = () => {
     localStorage.setItem("company_prep_experience_years", String(experienceYears));
 
     try {
+      const providerDef =
+        allAiProviders?.find((p) => p.id === selectedAIProvider?.provider) ||
+        allAiProviders?.[0];
+
       const result = await analyzeCompanySite({
         url: url.trim(),
         jdText: jdText.trim() || null,
@@ -199,8 +203,8 @@ const CompanyPrep = () => {
           targetRole: targetRole.trim(),
           experienceYears,
         },
-        provider: selectedAIProvider?.provider as any,
-        selectedProvider: selectedAIProvider as any,
+        provider: providerDef,
+        selectedProvider: selectedAIProvider,
         onProgress: (status) => setStatusText(status),
       });
 
