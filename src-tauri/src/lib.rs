@@ -7,6 +7,7 @@ mod copilot;
 mod rag;
 mod shortcuts;
 mod window;
+mod scraper;
 use copilot::CopilotState;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
@@ -128,6 +129,7 @@ pub fn run() {
             copilot::get_copilot_ram_context,
             copilot::process_audio_vad_chunk,
             copilot::start_gemini_live_websocket,
+            scraper::scrape_company,
         ])
         .setup(|app| {
             // Setup main window positioning

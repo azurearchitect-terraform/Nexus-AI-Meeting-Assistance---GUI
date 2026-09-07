@@ -10,13 +10,14 @@ import { getPlatform } from "@/lib";
 import { OverlayTabBar } from "./components/OverlayTabBar";
 import { AskMode } from "./components/AskMode";
 import { ListenMode } from "./components/ListenMode";
+import { IntelMode } from "./components/IntelMode";
 
 const App = () => {
   const { isHidden, systemAudio } = useApp();
   const { customizable } = useAppContext();
   const platform = getPlatform();
 
-  const [activeTab, setActiveTab] = useState<"ask" | "listen">("listen");
+  const [activeTab, setActiveTab] = useState<"ask" | "listen" | "intel">("listen");
   const [opacity, setOpacity] = useState<number>(() => {
     const saved = localStorage.getItem("nexus_app_transparency");
     return saved ? Number(saved) : 95;
@@ -68,6 +69,7 @@ const App = () => {
           <div className="flex-1 overflow-hidden">
             {activeTab === "ask" && <AskMode />}
             {activeTab === "listen" && <ListenMode />}
+            {activeTab === "intel" && <IntelMode />}
           </div>
 
           {/* Hidden components that process audio/AI in the background */}

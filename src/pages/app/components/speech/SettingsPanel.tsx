@@ -391,7 +391,7 @@ export const SettingsPanel = ({
                     {companyPrep.summary || "Company details prepared."}
                   </p>
                   <div className="mt-2 space-y-1.5">
-                    {companyPrep.shortQuestions.slice(0, 5).map((question, idx) => (
+                    {companyPrep.shortQuestions.slice(0, 5).map((question: string, idx: number) => (
                       <div key={`${question}-${idx}`} className="flex items-start gap-1.5">
                         <p className="text-[10px] text-foreground/90 flex-1 leading-snug">
                           {idx + 1}. {question}

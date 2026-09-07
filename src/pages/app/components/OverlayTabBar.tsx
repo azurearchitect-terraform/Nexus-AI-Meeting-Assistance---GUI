@@ -11,6 +11,7 @@ import {
   PlusIcon,
   MinusIcon,
   AlertTriangleIcon,
+  BriefcaseIcon,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Popover, PopoverTrigger, PopoverContent, Slider } from "@/components";
@@ -18,8 +19,8 @@ import { useApp } from "@/contexts";
 import { getAllPersistedProviderKeys, getPersistedProviderKey } from "@/lib/storage/provider-keys";
 
 interface OverlayTabBarProps {
-  activeTab: "ask" | "listen";
-  setActiveTab: (tab: "ask" | "listen") => void;
+  activeTab: "ask" | "listen" | "intel";
+  setActiveTab: (tab: "ask" | "listen" | "intel") => void;
 }
 
 export const OverlayTabBar = ({
@@ -119,6 +120,15 @@ export const OverlayTabBar = ({
           >
             <HeadphonesIcon className="h-4 w-4" />
             <span>Listen</span>
+          </Button>
+          <Button
+            variant={activeTab === "intel" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("intel")}
+            className="flex items-center gap-2 rounded-full px-4"
+          >
+            <BriefcaseIcon className="h-4 w-4" />
+            <span>Intel</span>
           </Button>
         </div>
       </div>

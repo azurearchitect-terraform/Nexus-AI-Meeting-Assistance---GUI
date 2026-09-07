@@ -195,7 +195,7 @@ export const InterviewContextModal = ({ open, onOpenChange }: { open: boolean, o
                     </p>
                   )}
                   <div className="space-y-2">
-                    {companyPrep.shortQuestions.map((q, idx) => (
+                    {companyPrep.shortQuestions.map((q: string, idx: number) => (
                       <div key={idx} className="flex items-start gap-2 group rounded-md p-2 hover:bg-muted/30 transition-colors">
                         <p className="text-xs text-foreground leading-snug flex-1">
                           {idx + 1}. {q}

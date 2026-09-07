@@ -76,7 +76,8 @@
     "tailwindcss": "^4.1.12",
     "tauri-plugin-keychain": "^2.0.1",
     "tauri-plugin-macos-permissions-api": "^2.3.0",
-    "tauri-plugin-posthog-api": "^0.2.2"
+    "tauri-plugin-posthog-api": "^0.2.2",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
@@ -86,6 +87,7 @@
     "@vitejs/plugin-react": "^4.6.0",
     "tw-animate-css": "^1.3.6",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^3.0.0"
   }
 }
