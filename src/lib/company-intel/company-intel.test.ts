@@ -198,7 +198,69 @@ describe("parseCompanyIntelJson", () => {
     expect(parseCompanyIntelJson(raw)).toEqual({ name: "Acme", techStack: [] });
   });
 
+  it("handles JSON with trailing commas gracefully", () => {
+    const raw = `{\n  "name": "Centroid",\n  "techStack": ["Oracle Cloud", "OCI",],\n}`;
+    expect(parseCompanyIntelJson(raw)).toEqual({ name: "Centroid", techStack: ["Oracle Cloud", "OCI"] });
+  });
+
   it("returns null on completely invalid content", () => {
     expect(parseCompanyIntelJson("Not a json at all")).toBeNull();
   });
 });
+
+describe("CompanyIntel schema resilience for real LLM outputs", () => {
+  it("safely coerces null arrays, non-standard rounds, and custom categories", () => {
+    const rawIntel = {
+      name: "Centroid",
+      coreBusiness: "Cloud migration and managed services for Oracle systems.",
+      technicalLandscape: "Oracle Cloud Infrastructure (OCI), Exadata, AWS.",
+      recentNews: null,
+      whyItMatters: null,
+      goldenFormula: null,
+      techStack: null, // LLM outputting null for empty arrays
+      questions: [
+        {
+          question: "How do you evaluate workload compatibility before migrating to OCI?",
+          context: null, // LLM outputting null for optional context
+          round: "Technical Interview", // non-standard round casing / wording
+          category: "Cloud Migration", // non-standard category
+          priority: "1", // string priority from LLM
+          suggestedPoints: "Check database compatibility", // string instead of array
+        },
+        {
+          question: "What does the growth trajectory look like for senior consultants?",
+          round: "Recruiter Round",
+          category: "Career Path",
+          priority: 1,
+        },
+      ],
+      jdInterviewQuestions: [
+        {
+          question: "How would you handle a zero-downtime database migration?",
+          category: "Infrastructure",
+          suggestedAnswer: "Use Oracle GoldenGate for real-time replication.",
+        },
+      ],
+      hrQuestions: null, // LLM outputting null
+      sourceQuality: "rich",
+    };
+
+    const intel = CompanyIntel.parse(rawIntel);
+    expect(intel.name).toBe("Centroid");
+    expect(intel.techStack).toEqual([]);
+    expect(intel.hrQuestions).toEqual([]);
+    expect(intel.questions.length).toBe(2);
+
+    const q1 = intel.questions[0];
+    expect(q1.round).toBe("technical");
+    expect(q1.category).toBe("Infrastructure");
+    expect(q1.priority).toBe(1);
+    expect(q1.suggestedPoints).toEqual(["Check database compatibility"]);
+
+    const q2 = intel.questions[1];
+    expect(q2.round).toBe("recruiter");
+    expect(q2.category).toBe("Growth");
+    expect(q2.priority).toBe(1);
+  });
+});
+

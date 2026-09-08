@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
   CompanyIntel,
+  IntelQuestion,
+  JdInterviewQuestion,
   ScrapeResult,
   normalizeCandidateQuestions,
   companyIntelPrompt,
@@ -13,6 +15,20 @@ import { AI_PROVIDERS } from "@/config";
 export const STORAGE_KEY_COMPANY_INTEL = "company_prep_data";
 export const EVENT_COMPANY_INTEL_UPDATED = "nexus_company_intel_updated";
 
+function tryParseJson(str: string): unknown | null {
+  try {
+    return JSON.parse(str);
+  } catch {
+    try {
+      // Remove trailing commas before } or ]
+      const cleaned = str.replace(/,\s*([}\]])/g, "$1");
+      return JSON.parse(cleaned);
+    } catch {
+      return null;
+    }
+  }
+}
+
 /**
  * Extracts and parses JSON from raw LLM text that may contain markdown fences or leading/trailing commentary.
  */
@@ -21,25 +37,22 @@ export function parseCompanyIntelJson(raw: string): unknown | null {
   if (!trimmed) return null;
 
   // 1. Direct JSON parse
-  try {
-    return JSON.parse(trimmed);
-  } catch {}
+  const direct = tryParseJson(trimmed);
+  if (direct) return direct;
 
   // 2. Fenced code block ```json ... ``` or ``` ... ```
   const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
   if (fenceMatch?.[1]) {
-    try {
-      return JSON.parse(fenceMatch[1].trim());
-    } catch {}
+    const fenced = tryParseJson(fenceMatch[1].trim());
+    if (fenced) return fenced;
   }
 
   // 3. Balanced brace extraction
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}");
   if (start !== -1 && end > start) {
-    try {
-      return JSON.parse(trimmed.slice(start, end + 1));
-    } catch {}
+    const braced = tryParseJson(trimmed.slice(start, end + 1));
+    if (braced) return braced;
   }
 
   return null;
@@ -199,30 +212,60 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
     throw new Error("AI returned invalid JSON for company intelligence profile");
   }
 
+  const parsedObj = (parsed && typeof parsed === "object") ? (parsed as Record<string, any>) : {};
+  const validation = CompanyIntel.safeParse({
+    ...parsedObj,
+    sourceQuality: scrape.quality,
+  });
+
   let intel: CompanyIntel;
-  try {
-    intel = CompanyIntel.parse({
-      ...(parsed as object),
+  if (validation.success) {
+    intel = validation.data;
+  } else {
+    console.warn("Zod schema validation issues, applying safe fallback defaults:", validation.error.issues);
+    const p = parsedObj;
+    intel = {
+      name: typeof p.name === "string" && p.name.trim() ? p.name.trim() : null,
+      coreBusiness: typeof p.coreBusiness === "string" && p.coreBusiness.trim() ? p.coreBusiness.trim() : null,
+      technicalLandscape: typeof p.technicalLandscape === "string" && p.technicalLandscape.trim() ? p.technicalLandscape.trim() : null,
+      recentNews: typeof p.recentNews === "string" && p.recentNews.trim() ? p.recentNews.trim() : null,
+      whyItMatters: typeof p.whyItMatters === "string" && p.whyItMatters.trim() ? p.whyItMatters.trim() : null,
+      goldenFormula: typeof p.goldenFormula === "string" && p.goldenFormula.trim() ? p.goldenFormula.trim() : null,
+      techStack: Array.isArray(p.techStack) ? p.techStack.filter((x: any) => typeof x === "string" && x.trim()).map((x: string) => x.trim()) : [],
+      questions: [],
+      jdInterviewQuestions: [],
+      hrQuestions: [],
+      salaryNegotiationStrategy: typeof p.salaryNegotiationStrategy === "string" && p.salaryNegotiationStrategy.trim() ? p.salaryNegotiationStrategy.trim() : null,
       sourceQuality: scrape.quality,
-    });
-  } catch (validationErr) {
-    console.warn("Zod schema validation error, falling back to safe parsing:", validationErr);
-    // If strict parse failed, construct safe defaults with available fields
-    const p = parsed as any;
-    intel = CompanyIntel.parse({
-      name: typeof p.name === "string" ? p.name : null,
-      coreBusiness: typeof p.coreBusiness === "string" ? p.coreBusiness : null,
-      technicalLandscape: typeof p.technicalLandscape === "string" ? p.technicalLandscape : null,
-      recentNews: typeof p.recentNews === "string" ? p.recentNews : null,
-      whyItMatters: typeof p.whyItMatters === "string" ? p.whyItMatters : null,
-      goldenFormula: typeof p.goldenFormula === "string" ? p.goldenFormula : null,
-      techStack: Array.isArray(p.techStack) ? p.techStack.filter((x: any) => typeof x === "string") : [],
-      questions: Array.isArray(p.questions) ? p.questions : [],
-      jdInterviewQuestions: Array.isArray(p.jdInterviewQuestions) ? p.jdInterviewQuestions : [],
-      hrQuestions: Array.isArray(p.hrQuestions) ? p.hrQuestions : [],
-      salaryNegotiationStrategy: typeof p.salaryNegotiationStrategy === "string" ? p.salaryNegotiationStrategy : null,
-      sourceQuality: scrape.quality,
-    });
+    };
+
+    if (Array.isArray(p.questions)) {
+      for (const q of p.questions) {
+        if (!q || typeof q !== "object") continue;
+        const itemResult = IntelQuestion.safeParse(q);
+        if (itemResult.success && itemResult.data.question.trim()) {
+          intel.questions.push(itemResult.data);
+        }
+      }
+    }
+    if (Array.isArray(p.hrQuestions)) {
+      for (const q of p.hrQuestions) {
+        if (!q || typeof q !== "object") continue;
+        const itemResult = IntelQuestion.safeParse(q);
+        if (itemResult.success && itemResult.data.question.trim()) {
+          intel.hrQuestions.push(itemResult.data);
+        }
+      }
+    }
+    if (Array.isArray(p.jdInterviewQuestions)) {
+      for (const q of p.jdInterviewQuestions) {
+        if (!q || typeof q !== "object") continue;
+        const itemResult = JdInterviewQuestion.safeParse(q);
+        if (itemResult.success && itemResult.data.question.trim()) {
+          intel.jdInterviewQuestions.push(itemResult.data);
+        }
+      }
+    }
   }
 
   // De-duplicate and ensure strictly one priority 1 per round
