@@ -259,24 +259,25 @@ ${messagesContent}`;
     "text-sm leading-relaxed";
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden p-3 gap-2">
-      {/* Top Header Toolbar */}
+    <div className="flex flex-col h-full w-full overflow-hidden p-2.5 gap-1.5">
+      {/* Top Header Toolbar - Sleek Single Row */}
       {!isFocusMode && (
-        <div className="flex flex-wrap items-center justify-between pb-2 border-b border-border/40 gap-2 shrink-0">
-          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+        <div className="flex items-center justify-between pb-1.5 border-b border-border/40 gap-2 shrink-0 h-8">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-x-auto no-scrollbar">
+            {/* Mode / Dynamic Routing selector */}
             <Select value={activeProfile} onValueChange={setActiveProfile}>
-              <SelectTrigger className="w-[170px] h-7 text-xs bg-muted/60 border-border/50 rounded-full focus:ring-0 shrink-0">
+              <SelectTrigger className="w-[145px] h-7 text-xs bg-muted/60 border-border/50 rounded-lg focus:ring-0 shrink-0">
                 <SelectValue placeholder="Select Mode" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectItem value="auto">
                     <div className="flex items-center">
-                      <SparklesIcon className="w-3.5 h-3.5 mr-2 text-primary" />
-                      Auto (Dynamic Routing)
+                      <SparklesIcon className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                      Auto (Routing)
                     </div>
                   </SelectItem>
-                  <SelectLabel className="mt-2">Templates</SelectLabel>
+                  <SelectLabel className="mt-1">Templates</SelectLabel>
                   {templates.map((t) => (
                     <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                   ))}
@@ -290,122 +291,127 @@ ${messagesContent}`;
               </SelectContent>
             </Select>
 
-            {/* Quick Action Buttons */}
-            <div className="flex items-center gap-1 flex-wrap shrink-0">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 rounded-full text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
-                onClick={handleSummarizeMeeting}
-                title="Summarize Meeting Minutes"
-              >
-                <FileTextIcon className="h-3.5 w-3.5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 rounded-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to clear the conversation?")) {
-                    clearConversation();
-                  }
-                }}
-                title="Clear Conversation"
-              >
-                <Trash2Icon className="h-3.5 w-3.5" />
-              </Button>
+            {/* System Audio Toggle Pill with pulsing dot */}
+            <Button 
+              variant={capturing ? "default" : "ghost"} 
+              size="sm" 
+              className={`h-7 rounded-lg px-2 text-xs shrink-0 cursor-pointer ${
+                capturing 
+                  ? isAiKeyMissing 
+                    ? "bg-amber-500 hover:bg-amber-600 text-black font-semibold shadow-xs" 
+                    : "bg-green-600 hover:bg-green-700 text-white shadow-xs" 
+                  : "border border-border/50 bg-background/60 hover:bg-muted/80"
+              }`}
+              onClick={capturing ? stopCapture : startCapture}
+              title={capturing ? "Audio is currently being captured. Click to pause/stop." : "Click to start capturing meeting audio."}
+            >
+              <div className={`h-2 w-2 rounded-full ${capturing ? (isAiKeyMissing ? "bg-black animate-pulse" : "bg-white animate-pulse") : "bg-muted-foreground"} mr-1.5`} />
+              <span>{capturing ? (isAiKeyMissing ? "Audio ON (No Key)" : "Listening") : "System Audio"}</span>
+            </Button>
 
-              <Select value={textColor} onValueChange={setTextColor}>
-                <SelectTrigger className="h-7 w-[85px] text-[10px] rounded-full border-border/50 focus:ring-0">
-                  <SelectValue placeholder="Color" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Text Color</SelectLabel>
-                    {TEXT_COLORS.map(c => (
-                      <SelectItem key={c.value} value={c.value}>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2.5 h-2.5 rounded-full border border-border/50 ${c.bg}`} />
-                          {c.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              <Button 
-                variant={capturing ? "default" : "ghost"} 
-                size="sm" 
-                className={`h-7 rounded-full px-2.5 text-xs ${
-                  capturing 
-                    ? isAiKeyMissing 
-                      ? "bg-amber-500 hover:bg-amber-600 text-black font-semibold shadow-sm" 
-                      : "bg-green-500 hover:bg-green-600 text-white shadow-sm" 
-                    : "border border-border/50"
-                }`}
-                onClick={capturing ? stopCapture : startCapture}
-              >
-                <div className={`h-2 w-2 rounded-full ${capturing ? (isAiKeyMissing ? "bg-black animate-pulse" : "bg-white animate-pulse") : "bg-muted-foreground"} mr-1.5`} />
-                {capturing ? (isAiKeyMissing ? "Audio Active (No AI Key)" : "Listening") : "System Audio"}
-              </Button>
-
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 w-7 rounded-full text-purple-500 hover:text-purple-600 hover:bg-purple-500/10"
-                onClick={() => setShowContextModal(true)}
-                title="Advanced Interview Settings (Company Context & Hint Mode)"
-              >
-                <BriefcaseIcon className="h-3.5 w-3.5" />
-              </Button>
-
-              <Button
-                variant={isTestMicEnabled ? "default" : "outline"}
-                size="sm"
-                className={`h-7 text-[10px] rounded-full border-border/50 ${isTestMicEnabled ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-muted-foreground'}`}
-                onClick={() => setIsTestMicEnabled(!isTestMicEnabled)}
-                title="Enable fallback microphone capture (for testing if system audio fails)"
-              >
-                {isTestMicEnabled ? <MicIcon className="h-3 w-3 mr-1" /> : <MicOff className="h-3 w-3 mr-1" />}
-                Mic {isTestMicEnabled ? "ON" : "OFF"}
-              </Button>
-
-              {usedLocalKnowledge && (
-                <div className="px-2 py-0.5 text-[10px] rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center shadow-sm">
-                  📚 Local Knowledge
-                </div>
-              )}
-              {activeProfile === "auto" && activePersonaName && (
-                <div className="px-2 py-0.5 text-[10px] rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center shadow-sm">
-                  <SparklesIcon className="w-3 h-3 mr-1" />
-                  {activePersonaName}
-                </div>
-              )}
-            </div>
+            {/* Persona / Local Knowledge Micro-Badges */}
+            {usedLocalKnowledge && (
+              <div className="px-1.5 py-0.5 text-[10px] rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center shrink-0" title="Local Knowledge Context Active">
+                📚 Local
+              </div>
+            )}
+            {activeProfile === "auto" && activePersonaName && (
+              <div className="px-1.5 py-0.5 text-[10px] rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center shrink-0 truncate max-w-[110px]" title={`Persona: ${activePersonaName}`}>
+                <SparklesIcon className="w-2.5 h-2.5 mr-1 shrink-0" />
+                <span className="truncate">{activePersonaName}</span>
+              </div>
+            )}
           </div>
 
-          {isAiKeyMissing ? (
-            <button
-              onClick={() => invoke("open_dashboard")}
-              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/30 text-xs font-semibold hover:bg-amber-500/20 transition-all cursor-pointer whitespace-nowrap shrink-0 animate-pulse"
-              title="AI API key is missing. Click to open Settings and configure your API key."
+          {/* Right Header Utilities Cluster */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Summarize Meeting */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 rounded-lg text-blue-500 hover:text-blue-600 hover:bg-blue-500/10 cursor-pointer"
+              onClick={handleSummarizeMeeting}
+              title="Summarize Meeting Minutes"
             >
-              <AlertTriangleIcon className="h-3 w-3 text-amber-500" />
-              <span>Missing API Key</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap shrink-0">
-              <div className={`h-2 w-2 rounded-full ${capturing ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
-              {capturing ? "listening" : "standby"}
-            </div>
-          )}
+              <FileTextIcon className="h-3.5 w-3.5" />
+            </Button>
+
+            {/* Company Context / Hint Mode */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 rounded-lg text-purple-500 hover:text-purple-600 hover:bg-purple-500/10 cursor-pointer"
+              onClick={() => setShowContextModal(true)}
+              title="Company Context & Interview Hint Mode"
+            >
+              <BriefcaseIcon className="h-3.5 w-3.5" />
+            </Button>
+
+            {/* Text Color Picker */}
+            <Select value={textColor} onValueChange={setTextColor}>
+              <SelectTrigger className="h-7 w-[68px] text-[10px] rounded-lg border-border/50 bg-background/60 focus:ring-0 px-1.5 cursor-pointer">
+                <SelectValue placeholder="Color" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Text Color</SelectLabel>
+                  {TEXT_COLORS.map(c => (
+                    <SelectItem key={c.value} value={c.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full border border-border/50 ${c.bg}`} />
+                        {c.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            {/* Test Mic fallback button */}
+            <Button
+              variant={isTestMicEnabled ? "default" : "ghost"}
+              size="sm"
+              className={`h-7 px-1.5 text-[10px] rounded-lg border border-border/50 ${isTestMicEnabled ? 'bg-red-500 hover:bg-red-600 text-white' : 'text-muted-foreground hover:text-foreground'} cursor-pointer`}
+              onClick={() => setIsTestMicEnabled(!isTestMicEnabled)}
+              title="Fallback Microphone Capture (Testing only)"
+            >
+              {isTestMicEnabled ? <MicIcon className="h-3 w-3 mr-1" /> : <MicOff className="h-3 w-3 mr-1" />}
+              <span>{isTestMicEnabled ? "Mic ON" : "Mic"}</span>
+            </Button>
+
+            {/* Clear Conversation */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-500/10 cursor-pointer"
+              onClick={() => {
+                if (window.confirm("Are you sure you want to clear the conversation?")) {
+                  clearConversation();
+                }
+              }}
+              title="Clear Conversation"
+            >
+              <Trash2Icon className="h-3.5 w-3.5" />
+            </Button>
+
+            {/* Missing API Key Warning Pill */}
+            {isAiKeyMissing && (
+              <button
+                onClick={() => invoke("open_dashboard")}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30 text-[10px] font-semibold hover:bg-amber-500/20 transition-all cursor-pointer whitespace-nowrap animate-pulse"
+                title="AI API key missing. Click to open Settings."
+              >
+                <AlertTriangleIcon className="h-3 w-3 text-amber-500" />
+                <span>Add Key</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Live Question Bar (Compact, Instant Zero-Latency Display) */}
-      <div className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-lg bg-muted/40 border border-border/40 shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+      {/* Live Question Bar (Compact 28px Ticker) */}
+      <div className="flex items-center justify-between gap-2.5 px-2.5 py-1 rounded-lg bg-muted/30 border border-border/40 shrink-0 h-7">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="flex items-center gap-1.5 shrink-0">
             {isAiKeyMissing ? (
               <AlertTriangleIcon className="h-3.5 w-3.5 text-amber-500" />
@@ -427,25 +433,25 @@ ${messagesContent}`;
           </p>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {userMessages.length > 1 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-[10px] rounded-full text-muted-foreground hover:text-foreground"
+              className="h-5 px-1.5 text-[10px] rounded text-muted-foreground hover:text-foreground"
               onClick={() => setShowHistory(!showHistory)}
               title="Toggle previous questions history"
             >
-              <HistoryIcon className="h-3 w-3 mr-1" />
+              <HistoryIcon className="h-2.5 w-2.5 mr-1" />
               History ({userMessages.length})
-              {showHistory ? <ChevronUpIcon className="h-3 w-3 ml-0.5" /> : <ChevronDownIcon className="h-3 w-3 ml-0.5" />}
+              {showHistory ? <ChevronUpIcon className="h-2.5 w-2.5 ml-0.5" /> : <ChevronDownIcon className="h-2.5 w-2.5 ml-0.5" />}
             </Button>
           )}
 
           {isAIProcessing && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium border border-primary/20 animate-pulse">
-              <SparklesIcon className="h-3 w-3" />
-              Answering...
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium border border-primary/20 animate-pulse">
+              <SparklesIcon className="h-2.5 w-2.5" />
+              <span>Answering...</span>
             </div>
           )}
         </div>
@@ -491,17 +497,17 @@ ${messagesContent}`;
       )}
 
       {/* Main Suggested Answer Panel (Vast, Primary Reading View) */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-border/50 bg-background/50 p-3 gap-2">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden rounded-xl border border-border/50 bg-background/50 p-2.5 gap-1.5">
         {/* Panel Header with Space, Font Size, and Copy Controls */}
-        <div className="flex items-center justify-between pb-2 border-b border-border/40 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold tracking-wider flex items-center gap-1.5 text-foreground">
+        <div className="flex items-center justify-between pb-1 border-b border-border/40 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold tracking-wider flex items-center gap-1.5 text-foreground/80 uppercase">
               SUGGESTED ANSWER
-              {isAIProcessing && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+              {isAIProcessing && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {/* Quick Transparency Popover with Steppers and Wheel Support */}
             <Popover>
               <PopoverTrigger asChild>
@@ -587,36 +593,36 @@ ${messagesContent}`;
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-[10px] rounded-full text-muted-foreground hover:text-foreground"
+              className="h-6 px-1.5 text-[10px] rounded-md text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={() => setFontSize(prev => prev === "sm" ? "base" : prev === "base" ? "lg" : "sm")}
               title="Cycle Font Size (Small, Normal, Large)"
             >
               <TypeIcon className="h-3 w-3 mr-1" />
-              {fontSize.toUpperCase()}
+              <span>{fontSize.toUpperCase()}</span>
             </Button>
 
             {/* Quick Copy Answer */}
             <Button
               variant="ghost"
               size="sm"
-              className={`h-6 px-2 text-[10px] rounded-full ${copied ? "text-green-500 bg-green-500/10" : "text-muted-foreground hover:text-foreground"}`}
+              className={`h-6 px-1.5 text-[10px] rounded-md cursor-pointer ${copied ? "text-green-500 bg-green-500/10" : "text-muted-foreground hover:text-foreground"}`}
               onClick={handleCopyLatestAnswer}
               title="Copy Suggested Answer to Clipboard"
             >
               {copied ? <CheckIcon className="h-3 w-3 mr-1 text-green-500" /> : <CopyIcon className="h-3 w-3 mr-1" />}
-              {copied ? "Copied" : "Copy"}
+              <span>{copied ? "Copied" : "Copy"}</span>
             </Button>
 
             {/* Focus / Maximize Reading View */}
             <Button
               variant="ghost"
               size="sm"
-              className={`h-6 px-2 text-[10px] rounded-full ${isFocusMode ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}`}
+              className={`h-6 px-1.5 text-[10px] rounded-md cursor-pointer ${isFocusMode ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => setIsFocusMode(!isFocusMode)}
               title={isFocusMode ? "Exit Full Space View" : "Maximize Reading Space"}
             >
               {isFocusMode ? <Minimize2Icon className="h-3 w-3 mr-1" /> : <Maximize2Icon className="h-3 w-3 mr-1" />}
-              {isFocusMode ? "Standard View" : "Max Space"}
+              <span>{isFocusMode ? "Standard" : "Zen"}</span>
             </Button>
           </div>
         </div>
@@ -742,29 +748,32 @@ ${messagesContent}`;
         </DialogContent>
       </Dialog>
         
-      {/* Bottom Action Toolbar & Audio Controls */}
+      {/* Unified Bottom Dock: Audio Visualizer, Transport Controls & Model Selectors in ONE sleek 38px row */}
       {!isFocusMode && (
-        <div className="flex flex-col gap-2 shrink-0 pt-2 border-t border-border/40">
-          <ActionToolbar />
-
-          <div className="flex items-center gap-3">
-            {/* Audio Wave Visualizer */}
-            <div className="flex-1 h-10 bg-green-500/10 rounded-xl flex items-center justify-center border border-green-500/20 overflow-hidden relative">
-              <div className="w-full flex items-center justify-center gap-1 px-3 z-10 h-full py-1.5">
-                {Array.from({ length: 48 }).map((_, i) => (
+        <div className="flex items-center justify-between gap-2 shrink-0 pt-1.5 border-t border-border/40">
+          {/* Left: Audio Wave Visualizer & Transport Controls */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            {/* Compact Audio Wave Visualizer */}
+            <div 
+              className="h-8 w-24 sm:w-32 bg-green-500/10 rounded-lg flex items-center justify-center border border-green-500/20 overflow-hidden relative shrink-0"
+              title="Real-time Audio Activity"
+            >
+              <div className="w-full flex items-center justify-center gap-0.5 px-1.5 z-10 h-full py-1">
+                {Array.from({ length: 24 }).map((_, i) => (
                   <div 
                     key={i} 
-                    className="w-1 bg-green-500 rounded-full transition-all duration-75" 
+                    className="w-1 bg-green-500/90 rounded-full transition-all duration-75" 
                     style={{ height: capturing ? `${Math.max(15, Math.random() * (recordingProgress || 100))}%` : '15%' }} 
                   />
                 ))}
               </div>
             </div>
 
+            {/* Transport controls: Pause/Resume & Stop */}
             <Button 
               variant="outline" 
               size="sm"
-              className={`rounded-xl border-border/50 bg-background/60 h-10 px-4 cursor-pointer text-xs font-semibold hover:bg-muted transition-all ${isPaused ? "bg-amber-500/20 text-amber-500 border-amber-500/30" : ""}`}
+              className={`rounded-lg border-border/50 bg-background/60 h-8 px-2 cursor-pointer text-xs font-semibold hover:bg-muted transition-all shrink-0 ${isPaused ? "bg-amber-500/20 text-amber-500 border-amber-500/30" : ""}`}
               onClick={() => {
                 if (capturing) {
                   stopCapture();
@@ -776,23 +785,30 @@ ${messagesContent}`;
                   startCapture();
                 }
               }}
+              title={isPaused ? "Resume Audio Capture" : "Pause Audio Capture"}
             >
-              <PauseIcon className="h-4 w-4 mr-1.5" />
-              {isPaused ? "Resume" : "Pause"}
+              <PauseIcon className="h-3.5 w-3.5 mr-1" />
+              <span>{isPaused ? "Resume" : "Pause"}</span>
             </Button>
 
             <Button 
               variant="destructive" 
               size="sm"
-              className="rounded-xl h-10 px-4 bg-red-950/60 text-red-400 border border-red-500/30 hover:bg-red-900/80 hover:text-red-300 cursor-pointer text-xs font-semibold transition-all shadow-sm"
+              className="rounded-lg h-8 px-2 bg-red-950/60 text-red-400 border border-red-500/30 hover:bg-red-900/80 hover:text-red-300 cursor-pointer text-xs font-semibold transition-all shadow-xs shrink-0"
               onClick={() => {
                 stopCapture();
                 setIsPaused(false);
               }}
+              title="Stop Audio Capture"
             >
-              <SquareIcon className="h-3.5 w-3.5 mr-1.5 fill-current" />
-              Stop
+              <SquareIcon className="h-3 w-3 mr-1 fill-current" />
+              <span>Stop</span>
             </Button>
+          </div>
+
+          {/* Right: Modern Model & STT Micro-Selectors */}
+          <div className="shrink-0">
+            <ActionToolbar compact />
           </div>
         </div>
       )}
