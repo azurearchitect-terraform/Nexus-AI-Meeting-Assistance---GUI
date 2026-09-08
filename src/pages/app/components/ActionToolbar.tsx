@@ -219,51 +219,55 @@ export const ActionToolbar = ({
   };
 
   return (
-    <div className="flex w-full items-center justify-between py-2">
-      <div className="flex items-center gap-2">
-        <div className="flex items-center rounded-full border border-border/50 bg-background/50 p-1">
+    <div className="flex w-full items-center justify-between gap-3 py-1">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center rounded-xl border border-border/50 bg-background/60 p-1 shadow-sm gap-0.5">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="flex items-center gap-2 rounded-full h-8 px-3"
+            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
             onClick={onCapture}
             disabled={isLoading}
+            title="Capture full screen screenshot"
           >
-            <CameraIcon className="h-4 w-4" />
-            Capture
+            <CameraIcon className="h-4 w-4 text-primary/90" />
+            <span>Capture</span>
           </Button>
-          <div className="w-[1px] h-4 bg-border/50 mx-1" />
+          <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
           <Button 
             variant="ghost" 
             size="sm" 
-            className="flex items-center gap-2 rounded-full h-8 px-3"
+            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
             onClick={onSelection}
             disabled={isLoading}
+            title="Capture selected screen region"
           >
-            <CropIcon className="h-4 w-4" />
-            Selection
+            <CropIcon className="h-4 w-4 text-primary/90" />
+            <span>Selection</span>
           </Button>
-          <div className="w-[1px] h-4 bg-border/50 mx-1" />
+          <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
           <Button 
             variant="ghost" 
             size="sm" 
-            className="flex items-center gap-2 rounded-full h-8 px-3"
+            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
             onClick={onAttach}
             disabled={isLoading}
+            title="Attach image files"
           >
-            <PaperclipIcon className="h-4 w-4" />
-            Attach
+            <PaperclipIcon className="h-4 w-4 text-primary/90" />
+            <span>Attach</span>
           </Button>
-          <div className="w-[1px] h-4 bg-border/50 mx-1" />
+          <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
           <Button 
             variant="ghost" 
             size="sm" 
-            className="flex items-center gap-2 rounded-full h-8 px-3"
+            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
             onClick={onLibrary}
             disabled={isLoading}
+            title="Open prompts & files library"
           >
-            <FolderIcon className="h-4 w-4" />
-            Library
+            <FolderIcon className="h-4 w-4 text-primary/90" />
+            <span>Library</span>
           </Button>
         </div>
       </div>
@@ -347,12 +351,12 @@ export const ActionToolbar = ({
         ) : (
           <>
             {/* Custom Mode: STT Provider & Model Selection Dropdowns */}
-            <div className="flex items-center gap-1 rounded-full border border-border/50 bg-background/50 p-0.5">
+            <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/60 p-1 shadow-sm">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                    🎙️ {currentSttProviderDef?.name || selectedSttProvider?.provider || "STT Provider"}
-                    <ChevronDownIcon className="h-2.5 w-2.5" />
+                  <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer">
+                    <span>🎙️ {currentSttProviderDef?.name || selectedSttProvider?.provider || "STT Provider"}</span>
+                    <ChevronDownIcon className="h-3 w-3 opacity-60" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[220px] max-h-[300px] overflow-y-auto bg-background">
@@ -383,12 +387,12 @@ export const ActionToolbar = ({
 
               {currentSttModels.length > 0 && (
                 <>
-                  <div className="w-[1px] h-3.5 bg-border/50 mx-0.5" />
+                  <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 px-2.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                        {selectedSttModelName}
-                        <ChevronDownIcon className="h-2.5 w-2.5" />
+                      <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer">
+                        <span>{selectedSttModelName}</span>
+                        <ChevronDownIcon className="h-3 w-3 opacity-60" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-[200px] max-h-[300px] overflow-y-auto bg-background">
@@ -411,12 +415,12 @@ export const ActionToolbar = ({
             <div className="w-[1px] h-4 bg-border/50 mx-1" />
 
             {/* Custom Mode: AI Provider & Model Selection Dropdowns */}
-            <div className="flex items-center gap-1 rounded-full border border-border/50 bg-background/50 p-0.5">
+            <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/60 p-1 shadow-sm">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                    🧠 {currentAiProviderDef?.name || selectedAIProvider?.provider || "AI Provider"}
-                    <ChevronDownIcon className="h-2.5 w-2.5" />
+                  <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer">
+                    <span>🧠 {currentAiProviderDef?.name || selectedAIProvider?.provider || "AI Provider"}</span>
+                    <ChevronDownIcon className="h-3 w-3 opacity-60" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[220px] max-h-[300px] overflow-y-auto bg-background">
@@ -447,12 +451,12 @@ export const ActionToolbar = ({
 
               {currentAiModels.length > 0 && (
                 <>
-                  <div className="w-[1px] h-3.5 bg-border/50 mx-0.5" />
+                  <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 px-2.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                        {selectedAiModelName}
-                        <ChevronDownIcon className="h-2.5 w-2.5" />
+                      <Button variant="ghost" size="sm" className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer">
+                        <span>{selectedAiModelName}</span>
+                        <ChevronDownIcon className="h-3 w-3 opacity-60" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-[200px] max-h-[300px] overflow-y-auto bg-background">

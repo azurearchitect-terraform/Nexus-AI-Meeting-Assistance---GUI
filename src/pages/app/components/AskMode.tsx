@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Button, Markdown } from "@/components";
-import { FollowUpPills } from "./FollowUpPills";
 import { ActionToolbar } from "./ActionToolbar";
-import { useApp as useAppHook } from "@/hooks";
+import { useApp as useAppHook, useChatCompletion } from "@/hooks";
 import {
   MicIcon,
   ImageIcon,
@@ -10,18 +9,10 @@ import {
   UserIcon,
   SparklesIcon,
   Loader2,
-  XIcon
+  XIcon,
 } from "lucide-react";
-import { useChatCompletion } from "@/hooks";
 import { ChatConversation } from "@/types";
 import moment from "moment";
-
-const FOLLOW_UPS: { label: string; icon?: "arrow" | "sparkles" }[] = [
-  { label: "Explain simpler", icon: "arrow" },
-  { label: "Give an example", icon: "arrow" },
-  { label: "Show the exact command", icon: "sparkles" },
-  { label: "Explain the root cause", icon: "sparkles" },
-];
 
 export const AskMode = () => {
   const [messages, setMessages] = useState<ChatConversation | null>(null);
@@ -131,30 +122,30 @@ export const AskMode = () => {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-border/50 pt-4 flex flex-col gap-3">
-        <FollowUpPills items={FOLLOW_UPS} onSelect={(label) => completion.submit(label)} />
-
-        <div className="flex items-center gap-2">
+      <div className="border-t border-border/50 pt-3 flex flex-col gap-3">
+        <div className="flex items-center gap-3 w-full">
           <Button 
             variant={capturing ? "default" : "outline"} 
             onClick={handlePushToTalkToggle}
-            className={`rounded-full border-border/50 h-10 px-4 cursor-pointer transition-all ${
-              capturing ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" : "bg-background/50"
+            className={`rounded-xl border-border/50 h-10 px-4 cursor-pointer transition-all shrink-0 font-medium ${
+              capturing ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" : "bg-background/60 hover:bg-muted/80"
             }`}
           >
-            <MicIcon className={`h-4 w-4 mr-2 ${capturing ? "text-white" : ""}`} />
+            <MicIcon className={`h-4 w-4 mr-2 ${capturing ? "text-white" : "text-primary"}`} />
             {capturing ? "Listening..." : "Push to talk"}
-            <span className="ml-2 text-xs border border-border/50 bg-muted/50 rounded px-1.5 py-0.5">Space</span>
+            <span className="ml-2 text-[10px] font-mono border border-border/50 bg-muted/60 rounded px-1.5 py-0.5 text-muted-foreground">Space</span>
           </Button>
 
-          <ActionToolbar 
-            onCapture={handleCaptureClick}
-            onSelection={handleSelectionClick}
-            onAttach={handleAttachClick}
-            onLibrary={handleLibraryClick}
-            attachedFilesCount={completion.attachedFiles.length}
-            isLoading={completion.isScreenshotLoading}
-          />
+          <div className="flex-1 min-w-0">
+            <ActionToolbar 
+              onCapture={handleCaptureClick}
+              onSelection={handleSelectionClick}
+              onAttach={handleAttachClick}
+              onLibrary={handleLibraryClick}
+              attachedFilesCount={completion.attachedFiles.length}
+              isLoading={completion.isScreenshotLoading}
+            />
+          </div>
         </div>
 
         {/* Attached Files Preview */}

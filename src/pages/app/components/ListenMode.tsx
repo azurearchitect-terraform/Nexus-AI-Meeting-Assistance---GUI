@@ -5,7 +5,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
   Popover, PopoverTrigger, PopoverContent, Slider
 } from "@/components";
-import { FollowUpPills } from "./FollowUpPills";
 import { ActionToolbar } from "./ActionToolbar";
 import { InterviewContextModal } from "./InterviewContextModal";
 import { useApp as useAppHook } from "@/hooks";
@@ -50,14 +49,6 @@ import {
 import { getAllPrompts } from "@/lib/platform-instructions";
 import { PERSONAS } from "@/config/constants";
 import { getAllPersistedProviderKeys, getPersistedProviderKey } from "@/lib/storage/provider-keys";
-
-const FOLLOW_UPS: { label: string; icon?: "arrow" | "sparkles" }[] = [
-  { label: "Fact Check", icon: "arrow" },
-  { label: "Draft Reply", icon: "arrow" },
-  { label: "Quote the annual rate", icon: "sparkles" },
-  { label: "Summarize the value points", icon: "sparkles" },
-  { label: "Draft the follow-up email", icon: "sparkles" },
-];
 
 export const ListenMode = () => {
   const [activeProfile, setActiveProfile] = useState<string>("auto");
@@ -281,15 +272,6 @@ ${messagesContent}`;
       await invoke("capture_selected_area");
     } catch (e) {
       console.error("Failed to capture area:", e);
-    }
-  };
-
-  const handleFollowUpSelect = async (label: string) => {
-    try {
-      console.log("Follow up selected:", label);
-      await systemAudio.handleQuickActionClick(label);
-    } catch (e) {
-      console.error("Failed follow up:", e);
     }
   };
 
@@ -761,11 +743,6 @@ ${messagesContent}`;
             </div>
           )}
         </div>
-
-        {/* Compact Follow-Up Pills */}
-        <div className="shrink-0 pt-1 border-t border-border/30">
-          <FollowUpPills items={FOLLOW_UPS} onSelect={handleFollowUpSelect} />
-        </div>
       </div>
 
       {/* Summary Dialog */}
@@ -813,7 +790,7 @@ ${messagesContent}`;
 
       {/* Bottom Action Toolbar & Audio Controls */}
       {!isFocusMode && (
-        <div className="flex flex-col gap-1.5 shrink-0 pt-1">
+        <div className="flex flex-col gap-2 shrink-0 pt-2 border-t border-border/40">
           <ActionToolbar 
             onCapture={handleCaptureClick}
             onSelection={handleSelectionClick}
@@ -823,8 +800,8 @@ ${messagesContent}`;
 
           <div className="flex items-center gap-3">
             {/* Audio Wave Visualizer */}
-            <div className="flex-1 h-9 bg-green-500/10 rounded-lg flex items-center justify-center border border-green-500/20 overflow-hidden relative">
-              <div className="w-full flex items-center justify-center gap-0.5 px-3 z-10 h-full py-1">
+            <div className="flex-1 h-10 bg-green-500/10 rounded-xl flex items-center justify-center border border-green-500/20 overflow-hidden relative">
+              <div className="w-full flex items-center justify-center gap-1 px-3 z-10 h-full py-1.5">
                 {Array.from({ length: 48 }).map((_, i) => (
                   <div 
                     key={i} 
@@ -838,7 +815,7 @@ ${messagesContent}`;
             <Button 
               variant="outline" 
               size="sm"
-              className={`rounded-full border-border/50 bg-background/50 h-8 px-3 cursor-pointer text-xs ${isPaused ? "bg-amber-500/20 text-amber-500 border-amber-500/30" : ""}`}
+              className={`rounded-xl border-border/50 bg-background/60 h-10 px-4 cursor-pointer text-xs font-semibold hover:bg-muted transition-all ${isPaused ? "bg-amber-500/20 text-amber-500 border-amber-500/30" : ""}`}
               onClick={() => {
                 if (capturing) {
                   stopCapture();
@@ -851,20 +828,20 @@ ${messagesContent}`;
                 }
               }}
             >
-              <PauseIcon className="h-3.5 w-3.5 mr-1.5" />
+              <PauseIcon className="h-4 w-4 mr-1.5" />
               {isPaused ? "Resume" : "Pause"}
             </Button>
 
             <Button 
               variant="destructive" 
               size="sm"
-              className="rounded-full h-8 px-3 bg-red-950/50 text-red-500 border border-red-500/20 hover:bg-red-950 cursor-pointer text-xs"
+              className="rounded-xl h-10 px-4 bg-red-950/60 text-red-400 border border-red-500/30 hover:bg-red-900/80 hover:text-red-300 cursor-pointer text-xs font-semibold transition-all shadow-sm"
               onClick={() => {
                 stopCapture();
                 setIsPaused(false);
               }}
             >
-              <SquareIcon className="h-3 w-3 mr-1.5 fill-current" />
+              <SquareIcon className="h-3.5 w-3.5 mr-1.5 fill-current" />
               Stop
             </Button>
           </div>
