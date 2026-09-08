@@ -11,7 +11,6 @@ import { useApp as useAppHook } from "@/hooks";
 import { useApp as useGlobalApp } from "@/contexts";
 import { fetchAIResponse } from "@/lib/functions";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import {
   SquareIcon,
   PauseIcon,
@@ -76,7 +75,6 @@ export const ListenMode = () => {
     clearConversation,
     activePersonaName,
     usedLocalKnowledge,
-    scanDocuments,
     isTestMicEnabled,
     setIsTestMicEnabled,
   } = systemAudio;
@@ -238,42 +236,7 @@ ${messagesContent}`;
     }
   };
 
-  const handleLibraryClick = async () => {
-    try {
-      const selectedPath = await open({
-        directory: true,
-        multiple: false,
-        title: "Select Folder to Scan (PDFs/Resumes Supported)",
-      });
-      if (selectedPath) {
-        const res = await scanDocuments(selectedPath as string);
-        alert(res);
-      }
-    } catch (e: any) {
-      alert("Error scanning documents: " + e.toString());
-    }
-  };
 
-  const handleAttachClick = () => {
-    const fileInput = document.getElementById("listen-file-upload");
-    if (fileInput) fileInput.click();
-  };
-
-  const handleCaptureClick = async () => {
-    try {
-      await invoke("start_screen_capture");
-    } catch (e) {
-      console.error("Failed to capture screen:", e);
-    }
-  };
-
-  const handleSelectionClick = async () => {
-    try {
-      await invoke("capture_selected_area");
-    } catch (e) {
-      console.error("Failed to capture area:", e);
-    }
-  };
 
   const handleCopyLatestAnswer = () => {
     const latestAssistantMsg = conversation.messages.find(m => m.role === "assistant")?.content || lastAIResponse;
@@ -779,24 +742,10 @@ ${messagesContent}`;
         </DialogContent>
       </Dialog>
         
-      <input
-        type="file"
-        id="listen-file-upload"
-        multiple
-        accept="image/*"
-        className="hidden"
-        onChange={() => {}}
-      />
-
       {/* Bottom Action Toolbar & Audio Controls */}
       {!isFocusMode && (
         <div className="flex flex-col gap-2 shrink-0 pt-2 border-t border-border/40">
-          <ActionToolbar 
-            onCapture={handleCaptureClick}
-            onSelection={handleSelectionClick}
-            onAttach={handleAttachClick}
-            onLibrary={handleLibraryClick}
-          />
+          <ActionToolbar />
 
           <div className="flex items-center gap-3">
             {/* Audio Wave Visualizer */}

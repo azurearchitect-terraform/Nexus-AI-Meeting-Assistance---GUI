@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components";
-import { CameraIcon, CropIcon, PaperclipIcon, FolderIcon, SparklesIcon, ChevronDownIcon, Loader2 } from "lucide-react";
+import { SparklesIcon, ChevronDownIcon, Loader2 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 
 interface Model {
@@ -18,12 +18,7 @@ interface StorageResult {
 }
 
 interface ActionToolbarProps {
-  onCapture: () => void;
-  onSelection: () => void;
-  onAttach: () => void;
-  onLibrary: () => void;
-  attachedFilesCount: number;
-  isLoading?: boolean;
+  attachedFilesCount?: number;
 }
 
 const SELECTED_PLUELY_MODEL_STORAGE_KEY = "selected_pluely_model";
@@ -89,13 +84,8 @@ import { useApp } from "@/contexts";
 import { ApiStatusIndicator } from "./ApiStatusIndicator";
 
 export const ActionToolbar = ({
-  onCapture = () => {},
-  onSelection = () => {},
-  onAttach = () => {},
-  onLibrary = () => {},
   attachedFilesCount = 0,
-  isLoading = false
-}: Partial<ActionToolbarProps>) => {
+}: ActionToolbarProps) => {
   const { 
     allSttProviders, 
     selectedSttProvider, 
@@ -220,66 +210,16 @@ export const ActionToolbar = ({
 
   return (
     <div className="flex w-full items-center justify-between gap-3 py-1">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div className="flex items-center rounded-xl border border-border/50 bg-background/60 p-1 shadow-sm gap-0.5">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-            onClick={onCapture}
-            disabled={isLoading}
-            title="Capture full screen screenshot"
-          >
-            <CameraIcon className="h-4 w-4 text-primary/90" />
-            <span>Capture</span>
-          </Button>
-          <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-            onClick={onSelection}
-            disabled={isLoading}
-            title="Capture selected screen region"
-          >
-            <CropIcon className="h-4 w-4 text-primary/90" />
-            <span>Selection</span>
-          </Button>
-          <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-            onClick={onAttach}
-            disabled={isLoading}
-            title="Attach image files"
-          >
-            <PaperclipIcon className="h-4 w-4 text-primary/90" />
-            <span>Attach</span>
-          </Button>
-          <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-            onClick={onLibrary}
-            disabled={isLoading}
-            title="Open prompts & files library"
-          >
-            <FolderIcon className="h-4 w-4 text-primary/90" />
-            <span>Library</span>
-          </Button>
-        </div>
-      </div>
+      {attachedFilesCount > 0 ? (
+        <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-xs">
+          <SparklesIcon className="h-4 w-4" />
+          {attachedFilesCount} file{attachedFilesCount > 1 ? "s" : ""} attached
+        </Button>
+      ) : (
+        <div className="flex-1" />
+      )}
 
-      <div className="flex items-center gap-4">
-        {attachedFilesCount > 0 && (
-          <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-            <SparklesIcon className="h-4 w-4" />
-            {attachedFilesCount} file{attachedFilesCount > 1 ? "s" : ""} attached
-          </Button>
-        )}
-
+      <div className="flex items-center gap-3 shrink-0">
         <ApiStatusIndicator />
 
         {pluelyApiEnabled ? (

@@ -22,57 +22,12 @@ export const AskMode = () => {
   // We use a blank conversationId for a fresh chat session in Ask mode
   const completion = useChatCompletion("", messages, setMessages);
 
-  const handleLibraryClick = () => {
-    const fileInput = document.getElementById("folder-upload");
-    if (fileInput) {
-      fileInput.click();
-    }
-  };
-
-  const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    let contextStr = "";
-    
-    for (const file of files) {
-      // Filter text-based source files
-      if (
-        file.name.match(/\.(txt|md|js|ts|tsx|jsx|json|csv|py|java|c|cpp|go|rs|html|css)$/i) || 
-        file.type.startsWith("text/")
-      ) {
-        if (contextStr.length > 50000) break; // 50k char limit safeguard
-        const text = await file.text();
-        contextStr += `\n\n--- ${file.webkitRelativePath || file.name} ---\n${text}`;
-      }
-    }
-    
-    if (contextStr) {
-      const existing = completion.input ? completion.input + "\n" : "";
-      completion.setInput(existing + "Here is some context from my local folder:" + contextStr);
-    }
-    // reset input
-    e.target.value = "";
-  };
-
   const handleAttachClick = () => {
     // We can programmatically click the hidden file input
     const fileInput = document.getElementById("ask-file-upload");
     if (fileInput) {
       fileInput.click();
     }
-  };
-
-  const handleSelectionClick = () => {
-    completion.setScreenshotConfiguration({ ...completion.screenshotConfiguration, enabled: false });
-    setTimeout(() => {
-      completion.captureScreenshot();
-    }, 50);
-  };
-
-  const handleCaptureClick = () => {
-    completion.setScreenshotConfiguration({ ...completion.screenshotConfiguration, enabled: true, mode: "manual" });
-    setTimeout(() => {
-      completion.captureScreenshot();
-    }, 50);
   };
 
   const handlePushToTalkToggle = () => {
@@ -138,12 +93,7 @@ export const AskMode = () => {
 
           <div className="flex-1 min-w-0">
             <ActionToolbar 
-              onCapture={handleCaptureClick}
-              onSelection={handleSelectionClick}
-              onAttach={handleAttachClick}
-              onLibrary={handleLibraryClick}
               attachedFilesCount={completion.attachedFiles.length}
-              isLoading={completion.isScreenshotLoading}
             />
           </div>
         </div>
@@ -178,14 +128,6 @@ export const AskMode = () => {
           className="hidden"
           onChange={completion.handleFileSelect}
           accept="image/*"
-        />
-
-        <input
-          type="file"
-          id="folder-upload"
-          className="hidden"
-          onChange={handleFolderSelect}
-          {...({ webkitdirectory: "true", directory: "true" } as any)}
         />
 
         <div className="relative flex items-center bg-background/50 border border-border/50 rounded-2xl p-2 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all">
