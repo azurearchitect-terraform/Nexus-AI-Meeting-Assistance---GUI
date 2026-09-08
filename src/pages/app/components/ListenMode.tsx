@@ -750,16 +750,16 @@ ${messagesContent}`;
         
       {/* Unified Bottom Dock: Audio Visualizer, Transport Controls & Model Selectors in ONE sleek 38px row */}
       {!isFocusMode && (
-        <div className="flex items-center justify-between gap-2 shrink-0 pt-1.5 border-t border-border/40">
+        <div className="flex items-center justify-between gap-2 shrink-0 pt-1.5 border-t border-border/40 overflow-hidden w-full">
           {/* Left: Audio Wave Visualizer & Transport Controls */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0 shrink-0">
             {/* Compact Audio Wave Visualizer */}
             <div 
-              className="h-8 w-24 sm:w-32 bg-green-500/10 rounded-lg flex items-center justify-center border border-green-500/20 overflow-hidden relative shrink-0"
+              className="h-7 w-16 sm:w-24 bg-green-500/10 rounded-lg flex items-center justify-center border border-green-500/20 overflow-hidden relative shrink-0"
               title="Real-time Audio Activity"
             >
               <div className="w-full flex items-center justify-center gap-0.5 px-1.5 z-10 h-full py-1">
-                {Array.from({ length: 24 }).map((_, i) => (
+                {Array.from({ length: 16 }).map((_, i) => (
                   <div 
                     key={i} 
                     className="w-1 bg-green-500/90 rounded-full transition-all duration-75" 
@@ -773,7 +773,7 @@ ${messagesContent}`;
             <Button 
               variant="outline" 
               size="sm"
-              className={`rounded-lg border-border/50 bg-background/60 h-8 px-2 cursor-pointer text-xs font-semibold hover:bg-muted transition-all shrink-0 ${isPaused ? "bg-amber-500/20 text-amber-500 border-amber-500/30" : ""}`}
+              className={`rounded-lg border-border/50 bg-background/60 h-7 px-2 cursor-pointer text-xs font-semibold hover:bg-muted transition-all shrink-0 ${isPaused ? "bg-amber-500/20 text-amber-500 border-amber-500/30" : ""}`}
               onClick={() => {
                 if (capturing) {
                   stopCapture();
@@ -787,27 +787,27 @@ ${messagesContent}`;
               }}
               title={isPaused ? "Resume Audio Capture" : "Pause Audio Capture"}
             >
-              <PauseIcon className="h-3.5 w-3.5 mr-1" />
-              <span>{isPaused ? "Resume" : "Pause"}</span>
+              <PauseIcon className="h-3 w-3" />
+              <span className="hidden xs:inline ml-1">{isPaused ? "Resume" : "Pause"}</span>
             </Button>
 
             <Button 
               variant="destructive" 
               size="sm"
-              className="rounded-lg h-8 px-2 bg-red-950/60 text-red-400 border border-red-500/30 hover:bg-red-900/80 hover:text-red-300 cursor-pointer text-xs font-semibold transition-all shadow-xs shrink-0"
+              className="rounded-lg h-7 px-2 bg-red-950/60 text-red-400 border border-red-500/30 hover:bg-red-900/80 hover:text-red-300 cursor-pointer text-xs font-semibold transition-all shadow-xs shrink-0"
               onClick={() => {
                 stopCapture();
                 setIsPaused(false);
               }}
               title="Stop Audio Capture"
             >
-              <SquareIcon className="h-3 w-3 mr-1 fill-current" />
-              <span>Stop</span>
+              <SquareIcon className="h-2.5 w-2.5 fill-current" />
+              <span className="hidden xs:inline ml-1">Stop</span>
             </Button>
           </div>
 
           {/* Right: Modern Model & STT Micro-Selectors */}
-          <div className="shrink-0">
+          <div className="shrink-0 min-w-0">
             <ActionToolbar compact />
           </div>
         </div>

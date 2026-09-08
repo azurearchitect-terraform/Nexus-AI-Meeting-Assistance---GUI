@@ -3,7 +3,11 @@ import { useApp } from "@/contexts";
 import { validateProvider, ApiValidationStatus } from "@/lib/functions/api-validation";
 import { Loader2 } from "lucide-react";
 
-export const ApiStatusIndicator = () => {
+interface ApiStatusIndicatorProps {
+  compact?: boolean;
+}
+
+export const ApiStatusIndicator = ({ compact = false }: ApiStatusIndicatorProps) => {
   const { selectedAIProvider, selectedSttProvider } = useApp();
   const [aiStatus, setAiStatus] = useState<ApiValidationStatus>('loading');
   const [sttStatus, setSttStatus] = useState<ApiValidationStatus>('loading');
@@ -64,6 +68,33 @@ export const ApiStatusIndicator = () => {
       default: return `Checking ${type}...`;
     }
   };
+
+  if (compact) {
+    return (
+      <div 
+        className="flex items-center gap-1.5 px-2 h-7 rounded-lg border border-border/50 bg-background/60 shrink-0 cursor-default"
+        title={`${getStatusText(sttStatus, "STT")} • ${getStatusText(aiStatus, "AI Assistant")}`}
+      >
+        <div className="flex items-center gap-1" title={getStatusText(sttStatus, "STT")}>
+          {sttStatus === 'loading' ? (
+            <Loader2 className="h-2 w-2 animate-spin text-muted-foreground" />
+          ) : (
+            <div className={`h-2 w-2 rounded-full ${getStatusColor(sttStatus)}`} />
+          )}
+          <span className="text-[9px] font-mono text-muted-foreground font-semibold">STT</span>
+        </div>
+        <div className="w-[1px] h-2.5 bg-border/50" />
+        <div className="flex items-center gap-1" title={getStatusText(aiStatus, "AI Assistant")}>
+          {aiStatus === 'loading' ? (
+            <Loader2 className="h-2 w-2 animate-spin text-muted-foreground" />
+          ) : (
+            <div className={`h-2 w-2 rounded-full ${getStatusColor(aiStatus)}`} />
+          )}
+          <span className="text-[9px] font-mono text-muted-foreground font-semibold">AI</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2 px-2 py-1 rounded-full border border-border/50 bg-background/50">

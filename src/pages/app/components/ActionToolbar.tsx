@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components";
-import { SparklesIcon, ChevronDownIcon, Loader2 } from "lucide-react";
+import { SparklesIcon, ChevronDownIcon, Loader2, CheckIcon } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 
 interface Model {
@@ -235,7 +235,7 @@ export const ActionToolbar = ({
       )}
 
       <div className="flex items-center gap-2 shrink-0">
-        <ApiStatusIndicator />
+        <ApiStatusIndicator compact={compact} />
 
         {pluelyApiEnabled ? (
           <>
@@ -316,151 +316,135 @@ export const ActionToolbar = ({
           </>
         ) : (
           <>
-            {/* Custom Mode: STT Provider & Model Selection Dropdowns */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-border/50 bg-background/60 p-0.5 shadow-xs">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 px-2 rounded-md text-xs font-medium flex items-center gap-1 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-                    title={`STT Provider: ${currentSttProviderDef?.name || selectedSttProvider?.provider || "STT Provider"}`}
-                  >
-                    <span>🎙️ {getCompactName(currentSttProviderDef?.name || selectedSttProvider?.provider || "STT", 10)}</span>
-                    <ChevronDownIcon className="h-2.5 w-2.5 opacity-60" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[220px] max-h-[300px] overflow-y-auto bg-background">
-                  <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">STT Provider</div>
-                  {allSttProviders.map(provider => (
-                    <DropdownMenuItem 
-                      key={provider.id} 
-                      className="cursor-pointer text-xs p-2 rounded-md hover:bg-accent/50" 
-                      onClick={() => {
-                        const defaultModel = provider.defaultModel || (provider.models && provider.models[0]) || "";
-                        const savedKey = getPersistedApiKey(provider.id || "");
-                        onSetSelectedSttProvider({ 
-                          provider: provider.id || "", 
-                          variables: { 
-                            API_KEY: savedKey,
-                            api_key: savedKey,
-                            model: defaultModel,
-                            MODEL: defaultModel
-                          } 
-                        });
-                      }}
-                    >
-                      {provider.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {currentSttModels.length > 0 && (
-                <>
-                  <div className="w-[1px] h-3.5 bg-border/50 mx-0.5" />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 px-2 rounded-md text-xs font-medium flex items-center gap-1 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-                        title={`STT Model: ${selectedSttModelName}`}
+            {/* Custom Mode: Unified STT Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 rounded-lg border border-border/50 bg-background/60 hover:bg-muted/80 text-xs font-medium flex items-center gap-1 text-foreground/80 hover:text-foreground transition-all cursor-pointer max-w-[125px] sm:max-w-[155px]"
+                  title={`Transcription (STT): ${currentSttProviderDef?.name || "STT"} • ${selectedSttModelName}`}
+                >
+                  <span className="shrink-0">🎙️</span>
+                  <span className="truncate">{getCompactName(selectedSttModelName || currentSttProviderDef?.name || "STT", 12)}</span>
+                  <ChevronDownIcon className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[240px] max-h-[320px] overflow-y-auto bg-background">
+                {currentSttModels.length > 0 && (
+                  <>
+                    <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      {currentSttProviderDef?.name || "STT"} Models
+                    </div>
+                    {currentSttModels.map(modelName => (
+                      <DropdownMenuItem 
+                        key={modelName} 
+                        className={`cursor-pointer text-xs p-2 rounded-md ${modelName === selectedSttModelName ? "bg-accent/60 font-semibold text-foreground" : "hover:bg-accent/40"}`} 
+                        onClick={() => handleSttModelChange(modelName)}
                       >
-                        <span>{getCompactName(selectedSttModelName, 12)}</span>
-                        <ChevronDownIcon className="h-2.5 w-2.5 opacity-60" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[200px] max-h-[300px] overflow-y-auto bg-background">
-                      <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">STT Model</div>
-                      {currentSttModels.map(modelName => (
-                        <DropdownMenuItem 
-                          key={modelName} 
-                          className="cursor-pointer text-xs p-2 rounded-md hover:bg-accent/50" 
-                          onClick={() => handleSttModelChange(modelName)}
-                        >
-                          {modelName}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              )}
-            </div>
+                        <div className="flex items-center justify-between w-full">
+                          <span className="truncate">{modelName}</span>
+                          {modelName === selectedSttModelName && <CheckIcon className="h-3.5 w-3.5 text-primary shrink-0 ml-1" />}
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                    <div className="w-full h-[1px] bg-border/40 my-1" />
+                  </>
+                )}
 
-            <div className="w-[1px] h-4 bg-border/50 mx-0.5" />
-
-            {/* Custom Mode: AI Provider & Model Selection Dropdowns */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-border/50 bg-background/60 p-0.5 shadow-xs">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 px-2 rounded-md text-xs font-medium flex items-center gap-1 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-                    title={`AI Provider: ${currentAiProviderDef?.name || selectedAIProvider?.provider || "AI Provider"}`}
+                <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Change Provider</div>
+                {allSttProviders.map(provider => (
+                  <DropdownMenuItem 
+                    key={provider.id} 
+                    className={`cursor-pointer text-xs p-2 rounded-md ${provider.id === selectedSttProvider?.provider ? "bg-accent/40 font-medium" : "hover:bg-accent/30"}`} 
+                    onClick={() => {
+                      const defaultModel = provider.defaultModel || (provider.models && provider.models[0]) || "";
+                      const savedKey = getPersistedApiKey(provider.id || "");
+                      onSetSelectedSttProvider({ 
+                        provider: provider.id || "", 
+                        variables: { 
+                          API_KEY: savedKey,
+                          api_key: savedKey,
+                          model: defaultModel,
+                          MODEL: defaultModel
+                        } 
+                      });
+                    }}
                   >
-                    <span>✦ {getCompactName(currentAiProviderDef?.name || selectedAIProvider?.provider || "AI", 10)}</span>
-                    <ChevronDownIcon className="h-2.5 w-2.5 opacity-60" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[220px] max-h-[300px] overflow-y-auto bg-background">
-                  <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">AI Provider</div>
-                  {allAiProviders.map(provider => (
-                    <DropdownMenuItem 
-                      key={provider.id} 
-                      className="cursor-pointer text-xs p-2 rounded-md hover:bg-accent/50" 
-                      onClick={() => {
-                        const defaultModel = provider.defaultModel || (provider.models && provider.models[0]) || "";
-                        const savedKey = getPersistedApiKey(provider.id || "");
-                        onSetSelectedAIProvider({ 
-                          provider: provider.id || "", 
-                          variables: { 
-                            API_KEY: savedKey,
-                            api_key: savedKey,
-                            model: defaultModel,
-                            MODEL: defaultModel
-                          } 
-                        });
-                      }}
-                    >
-                      {provider.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{provider.name}</span>
+                      {provider.id === selectedSttProvider?.provider && <span className="text-[10px] text-primary font-semibold">Active</span>}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              {currentAiModels.length > 0 && (
-                <>
-                  <div className="w-[1px] h-3.5 bg-border/50 mx-0.5" />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 px-2 rounded-md text-xs font-medium flex items-center gap-1 text-foreground/80 hover:text-foreground hover:bg-muted/80 transition-all cursor-pointer"
-                        title={`AI Model: ${selectedAiModelName}`}
+            <div className="w-[1px] h-3.5 bg-border/50 mx-0.5" />
+
+            {/* Custom Mode: Unified AI Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 rounded-lg border border-border/50 bg-background/60 hover:bg-muted/80 text-xs font-medium flex items-center gap-1 text-foreground/80 hover:text-foreground transition-all cursor-pointer max-w-[125px] sm:max-w-[155px]"
+                  title={`AI Assistant: ${currentAiProviderDef?.name || "AI"} • ${selectedAiModelName}`}
+                >
+                  <span className="shrink-0">✦</span>
+                  <span className="truncate">{getCompactName(selectedAiModelName || currentAiProviderDef?.name || "AI", 12)}</span>
+                  <ChevronDownIcon className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[240px] max-h-[320px] overflow-y-auto bg-background">
+                {currentAiModels.length > 0 && (
+                  <>
+                    <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      {currentAiProviderDef?.name || "AI"} Models
+                    </div>
+                    {currentAiModels.map(modelName => (
+                      <DropdownMenuItem 
+                        key={modelName} 
+                        className={`cursor-pointer text-xs p-2 rounded-md ${modelName === selectedAiModelName ? "bg-accent/60 font-semibold text-foreground" : "hover:bg-accent/40"}`} 
+                        onClick={() => handleAiModelChange(modelName)}
                       >
-                        <span>{getCompactName(selectedAiModelName, 12)}</span>
-                        <ChevronDownIcon className="h-2.5 w-2.5 opacity-60" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[200px] max-h-[300px] overflow-y-auto bg-background">
-                      <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">AI Model</div>
-                      {currentAiModels.map(modelName => (
-                        <DropdownMenuItem 
-                          key={modelName} 
-                          className="cursor-pointer text-xs p-2 rounded-md hover:bg-accent/50" 
-                          onClick={() => handleAiModelChange(modelName)}
-                        >
-                          {modelName}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              )}
-            </div>
+                        <div className="flex items-center justify-between w-full">
+                          <span className="truncate">{modelName}</span>
+                          {modelName === selectedAiModelName && <CheckIcon className="h-3.5 w-3.5 text-primary shrink-0 ml-1" />}
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                    <div className="w-full h-[1px] bg-border/40 my-1" />
+                  </>
+                )}
+
+                <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Change Provider</div>
+                {allAiProviders.map(provider => (
+                  <DropdownMenuItem 
+                    key={provider.id} 
+                    className={`cursor-pointer text-xs p-2 rounded-md ${provider.id === selectedAIProvider?.provider ? "bg-accent/40 font-medium" : "hover:bg-accent/30"}`} 
+                    onClick={() => {
+                      const defaultModel = provider.defaultModel || (provider.models && provider.models[0]) || "";
+                      const savedKey = getPersistedApiKey(provider.id || "");
+                      onSetSelectedAIProvider({ 
+                        provider: provider.id || "", 
+                        variables: { 
+                          API_KEY: savedKey,
+                          api_key: savedKey,
+                          model: defaultModel,
+                          MODEL: defaultModel
+                        } 
+                      });
+                    }}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span>{provider.name}</span>
+                      {provider.id === selectedAIProvider?.provider && <span className="text-[10px] text-primary font-semibold">Active</span>}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         )}
       </div>
