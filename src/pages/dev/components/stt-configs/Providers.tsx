@@ -217,34 +217,62 @@ export const Providers = ({
                   }`}
                 />
                 {isModelVar && modelOptions.length > 0 ? (
-                  <Select
-                    value={getVariableValue() || modelOptions[0].value}
-                    onValueChange={(val) => {
-                      if (!variable?.key || !selectedSttProvider) return;
-                      onSetSelectedSttProvider({
-                        ...selectedSttProvider,
-                        variables: {
-                          ...selectedSttProvider.variables,
-                          [variable.key]: val,
-                        },
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="w-full h-11 border border-input bg-background text-foreground focus:border-primary/50 transition-colors">
-                      <SelectValue placeholder="Select an STT model" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60 overflow-y-auto bg-popover text-popover-foreground border border-border shadow-lg">
-                      {modelOptions.map((opt) => (
-                        <SelectItem 
-                          key={opt.value} 
-                          value={opt.value}
-                          className="cursor-pointer hover:bg-accent/50 text-popover-foreground"
-                        >
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Select
+                      value={modelOptions.some(opt => opt.value === getVariableValue()) ? getVariableValue() : ""}
+                      onValueChange={(val) => {
+                        if (!variable?.key || !selectedSttProvider) return;
+                        onSetSelectedSttProvider({
+                          ...selectedSttProvider,
+                          variables: {
+                            ...selectedSttProvider.variables,
+                            [variable.key]: val,
+                            MODEL: val,
+                            model: val,
+                          },
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-full h-11 border border-input bg-background text-foreground focus:border-primary/50 transition-colors">
+                        <SelectValue placeholder="Select an STT preset or enter custom model below" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto bg-popover text-popover-foreground border border-border shadow-lg">
+                        {modelOptions.map((opt) => (
+                          <SelectItem
+                            key={opt.value}
+                            value={opt.value}
+                            className="cursor-pointer hover:bg-accent/50 text-popover-foreground"
+                          >
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Or enter STT model name manually:</span>
+                        {getVariableValue() && (
+                          <span className="font-mono text-[11px] text-primary">Active: {getVariableValue()}</span>
+                        )}
+                      </div>
+                      <TextInput
+                        placeholder="e.g. gemini-2.5-flash, gemini-2.0-flash, whisper-1, etc."
+                        value={getVariableValue()}
+                        onChange={(value) => {
+                          if (!variable?.key || !selectedSttProvider) return;
+                          onSetSelectedSttProvider({
+                            ...selectedSttProvider,
+                            variables: {
+                              ...selectedSttProvider.variables,
+                              [variable.key]: value,
+                              MODEL: value,
+                              model: value,
+                            },
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <TextInput
                     placeholder={`Enter ${
