@@ -85,7 +85,7 @@ export const Providers = ({
           </p>
           <div className="text-xs space-y-1 text-muted-foreground">
             <div className="flex gap-2"><span className="text-blue-500">⚡ Short queries</span><span>→ Groq (llama-3.3-70b-versatile) — fastest, free</span></div>
-            <div className="flex gap-2"><span className="text-green-500">📄 Long context</span><span>→ Gemini (gemini-2.5-flash-lite) — cheapest per token</span></div>
+            <div className="flex gap-2"><span className="text-green-500">📄 Long context</span><span>→ Gemini (gemini-3.5-flash-lite) — cheapest per token</span></div>
             <div className="flex gap-2"><span className="text-orange-500">🧠 Complex/coding</span><span>→ OpenAI (gpt-4o) if key available</span></div>
           </div>
           <div className="space-y-2 pt-2 border-t border-border/50">
@@ -328,7 +328,7 @@ export const Providers = ({
                         )}
                       </div>
                       <TextInput
-                        placeholder="e.g. gemini-2.5-flash, gemini-2.0-flash, gpt-4o, etc."
+                        placeholder="e.g. gemini-3.8-flash, gemini-3.7-flash, gpt-4o, etc."
                         value={getVariableValue()}
                         onChange={(value) => {
                           if (!variable?.key || !selectedAIProvider) return;

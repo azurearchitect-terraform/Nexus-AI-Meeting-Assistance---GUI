@@ -65,17 +65,16 @@ export const AI_PROVIDERS = [
   {
     id: "gemini",
     name: "Google Gemini",
-    defaultModel: "gemini-2.5-flash",
+    defaultModel: "gemini-3.8-flash",
     models: [
-      "gemini-2.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
       "gemini-3.6-flash",
       "gemini-3.5-flash",
       "gemini-3.5-flash-lite",
+      "gemini-3.1-flash-lite",
       "gemini-3.1-pro-preview",
+      "gemini-3.5-transcribe",
     ],
     curl: `curl "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" \\
   -H "Authorization: Bearer {{API_KEY}}" \\

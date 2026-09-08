@@ -9,6 +9,16 @@ export interface ModelPricing {
 export const API_PRICING: ModelPricing[] = [
   // Gemini 3.x Series (Estimates based on Google's pricing)
   {
+    modelId: "gemini-3.8-flash",
+    pricePer1MInputUSD: 0.15,
+    pricePer1MOutputUSD: 0.60,
+  },
+  {
+    modelId: "gemini-3.7-flash",
+    pricePer1MInputUSD: 0.15,
+    pricePer1MOutputUSD: 0.60,
+  },
+  {
     modelId: "gemini-3.5-flash",
     pricePer1MInputUSD: 0.15,
     pricePer1MOutputUSD: 0.60,

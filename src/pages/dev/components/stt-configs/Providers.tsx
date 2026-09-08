@@ -256,7 +256,7 @@ export const Providers = ({
                         )}
                       </div>
                       <TextInput
-                        placeholder="e.g. gemini-2.5-flash, gemini-2.0-flash, whisper-1, etc."
+                        placeholder="e.g. gemini-3.8-flash, gemini-3.5-transcribe, whisper-1, etc."
                         value={getVariableValue()}
                         onChange={(value) => {
                           if (!variable?.key || !selectedSttProvider) return;
