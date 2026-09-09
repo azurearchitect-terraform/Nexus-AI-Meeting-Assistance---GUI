@@ -10,6 +10,7 @@ import {
   PowerIcon,
   MessageSquareTextIcon,
   Briefcase,
+  Sparkles,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -30,6 +31,11 @@ export const useMenuItems = () => {
       icon: Briefcase,
       label: "Company Prep",
       href: "/company-prep",
+    },
+    {
+      icon: Sparkles,
+      label: "Interview Prep",
+      href: "/interview-prep",
     },
     {
       icon: MessagesSquare,

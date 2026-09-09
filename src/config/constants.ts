@@ -30,6 +30,9 @@ export const STORAGE_KEYS = {
   TARGET_ROLE: "target_role",
   JOB_DESCRIPTION: "job_description",
   COMPANY_PREP_DATA: "company_prep_data",
+  STORY_BANK: "nexus_story_bank",
+  INTERVIEW_MODE: "nexus_interview_mode",
+  INTERVIEW_DEBRIEFS: "nexus_interview_debriefs",
 } as const;
 
 // Max number of files that can be attached to a message
