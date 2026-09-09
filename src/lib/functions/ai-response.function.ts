@@ -440,6 +440,22 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
       }
     }
 
+    // Low-latency meeting optimizations:
+    // Models like Gemini 3.8/3.7 Flash and OpenAI o1/o3 default to high reasoning/thinking budgets,
+    // which injects 5-10s of delay before the first token. Set reasoning_effort to "low" and
+    // pass thinking budget = 0 so responses start streaming immediately (< 500ms).
+    if (typeof bodyObj === "object" && bodyObj !== null) {
+      const isGemini = url?.includes("generativelanguage.googleapis.com") || selectedProvider?.provider === "gemini";
+      if (isGemini) {
+        if (!bodyObj.reasoning_effort) {
+          bodyObj.reasoning_effort = "low";
+        }
+        if (!bodyObj.thinking_config && !bodyObj.generationConfig?.thinkingConfig) {
+          bodyObj.thinking_config = { thinking_budget: 0 };
+        }
+      }
+    }
+
     const isCorsFriendly =
       url?.includes("api.openai.com") ||
       url?.includes("generativelanguage.googleapis.com") ||
@@ -494,12 +510,7 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
       const content =
         getByPath(json, provider?.responseContentPath || "") || "";
       if (typeof content === "string") {
-        const words = content.split(/(\s+)/);
-        for (const w of words) {
-          if (signal?.aborted) return;
-          yield w;
-          await new Promise((r) => setTimeout(r, 15));
-        }
+        yield content;
       } else {
         yield String(content || "");
       }
@@ -583,13 +594,8 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
               provider?.responseContentPath || ""
             );
             if (delta) {
-              const tokens = delta.split(/(\s+)/);
-              for (const tok of tokens) {
-                if (!tok) continue;
-                if (signal?.aborted) return;
-                yield tok;
-                await new Promise((r) => setTimeout(r, 12));
-              }
+              if (signal?.aborted) return;
+              yield delta;
             }
           } catch (e) {
             // Ignore parsing errors for partial JSON chunks

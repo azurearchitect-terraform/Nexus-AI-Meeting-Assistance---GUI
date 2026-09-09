@@ -159,10 +159,12 @@ export const useChatCompletion = (
 
       try {
         // Prepare message history for the AI
-        const messageHistory = (messages?.messages || []).map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+        const messageHistory = (messages?.messages || [])
+          .slice(-8)
+          .map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          }));
 
         // Handle image attachments
         const imagesBase64: string[] = [];

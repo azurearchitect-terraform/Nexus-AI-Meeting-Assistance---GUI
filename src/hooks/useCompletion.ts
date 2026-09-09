@@ -161,8 +161,8 @@ export const useCompletion = () => {
       const signal = abortControllerRef.current.signal;
 
       try {
-        // Prepare message history for the AI
-        const messageHistory = state.conversationHistory.map((msg) => ({
+        // Prepare message history for the AI (bounded to last 8 messages for low latency)
+        const messageHistory = state.conversationHistory.slice(-8).map((msg) => ({
           role: msg.role,
           content: msg.content,
         }));
@@ -575,7 +575,7 @@ export const useCompletion = () => {
 
           try {
             // Prepare message history for the AI
-            const messageHistory = state.conversationHistory.map((msg) => ({
+            const messageHistory = state.conversationHistory.slice(-8).map((msg) => ({
               role: msg.role,
               content: msg.content,
             }));

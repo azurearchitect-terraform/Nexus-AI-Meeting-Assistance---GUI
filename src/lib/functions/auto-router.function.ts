@@ -12,10 +12,10 @@ const GROQ_PROVIDER_ID  = "groq";
 const GEMINI_PROVIDER_ID = "gemini";
 const OPENAI_PROVIDER_ID = "openai";
 
-// Cheapest / fastest Gemini model that is currently live
+// Cheapest / fastest models that are currently live and optimized for low-latency live meetings
 const GEMINI_CHEAP_MODEL = "gemini-3.5-flash-lite";
 const GROQ_FAST_MODEL    = "llama-3.1-8b-instant";
-const OPENAI_SMART_MODEL = "gpt-4o";
+const OPENAI_SMART_MODEL = "gpt-4o-mini";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 export interface AutoRouterKeys {

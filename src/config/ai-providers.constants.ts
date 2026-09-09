@@ -81,6 +81,7 @@ export const AI_PROVIDERS = [
   -H "Content-Type: application/json" \\
   -d '{
     "model": "{{MODEL}}",
+    "reasoning_effort": "low",
     "messages": [{"role": "system", "content": "{{SYSTEM_PROMPT}}"}, {"role": "user", "content": [{"type": "text", "text": "{{TEXT}}"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64,{{IMAGE}}"}}]}]
   }'`,
     responseContentPath: "choices[0].message.content",

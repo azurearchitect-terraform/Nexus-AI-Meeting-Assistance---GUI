@@ -374,7 +374,7 @@ export function useSystemAudio() {
             ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
             : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
             
-          const visibleMessages = [...conversationRef.current.messages].reverse();
+          const visibleMessages = [...conversationRef.current.messages].reverse().slice(-8);
           const previousMessages = [...sessionMemoryRef.current, ...visibleMessages].map((msg) => {
             return { role: msg.role, content: msg.content };
           });
@@ -536,7 +536,7 @@ export function useSystemAudio() {
                   ? systemPromptRef.current || DEFAULT_SYSTEM_PROMPT
                   : contextContentRef.current || DEFAULT_SYSTEM_PROMPT;
 
-                const visibleMessages = [...conversationRef.current.messages].reverse();
+                const visibleMessages = [...conversationRef.current.messages].reverse().slice(-8);
                 const previousMessages = [...sessionMemoryRef.current, ...visibleMessages].map((msg) => {
                   return { role: msg.role, content: msg.content };
                 });
@@ -688,7 +688,7 @@ export function useSystemAudio() {
       }
     }
 
-    const visibleMessages = [...updatedMessages].reverse();
+    const visibleMessages = [...updatedMessages].reverse().slice(-8);
     const previousMessages = [...sessionMemoryRef.current, ...visibleMessages].map((msg) => {
       return { role: msg.role, content: msg.content };
     });
