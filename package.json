@@ -1,7 +1,7 @@
 {
   "name": "nexus-ai-interview-assistance",
-  "private": false,
-  "version": "2.2.0",
+  "private": true,
+  "version": "2.3.0",
   "description": "Nexus Meeting Assistance - A lightning-fast, privacy-first AI assistant.",
   "author": {
     "name": "Nexus"
