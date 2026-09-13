@@ -10,3 +10,4 @@ export * from "./analytics";
 export * from "./response-settings.constants";
 export * from "./company-intel";
 export * from "./story-bank";
+export * from "./speech-utterance";
