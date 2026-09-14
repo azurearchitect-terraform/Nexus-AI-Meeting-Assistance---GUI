@@ -15,6 +15,7 @@ import {
   safeLocalStorage,
   shouldUsePluelyAPI,
   generateConversationTitle,
+  getAllConversations,
   saveConversation,
   CONVERSATION_SAVE_DEBOUNCE_MS,
   generateConversationId,
@@ -28,6 +29,11 @@ import {
   mergeSpeechSegments,
   normalizeSpeechText,
 } from "@/lib/speech-utterance";
+import {
+  findCachedAnswer,
+  type CacheableMessage,
+  type CachedAnswerMatch,
+} from "@/lib/question-answer-cache";
 
 // VAD Configuration interface matching Rust
 export interface VadConfig {
@@ -132,6 +138,7 @@ export function useSystemAudio() {
   const [isTestMicEnabled, setIsTestMicEnabled] = useState<boolean>(false);
   const [activePersonaName, setActivePersonaName] = useState<string>("Default Assistant");
   const [usedLocalKnowledge, setUsedLocalKnowledge] = useState<boolean>(false);
+  const [usedCachedAnswer, setUsedCachedAnswer] = useState<boolean>(false);
   const [setupRequired, setSetupRequired] = useState<boolean>(false);
   const [quickActions, setQuickActions] = useState<string[]>([]);
   const [isManagingQuickActions, setIsManagingQuickActions] =
@@ -225,6 +232,7 @@ export function useSystemAudio() {
     const transcription = normalizeSpeechText(pendingTranscriptionRef.current);
     pendingTranscriptionRef.current = "";
     if (!isActionableSpeech(transcription)) return;
+    setUsedCachedAnswer(false);
 
     const timestamp = Date.now();
     if (
@@ -269,6 +277,27 @@ export function useSystemAudio() {
       content: message.content,
     }));
 
+    const cachedMatch = await findReusableAnswer(transcription);
+    if (cachedMatch) {
+      const answerTimestamp = Date.now();
+      const assistantMessage = {
+        id: generateMessageId("assistant", answerTimestamp),
+        role: "assistant" as const,
+        content: cachedMatch.answer,
+        timestamp: answerTimestamp,
+      };
+
+      setUsedCachedAnswer(true);
+      setLastAIResponse(cachedMatch.answer);
+      setConversation((prev) => ({
+        ...prev,
+        messages: [assistantMessage, ...prev.messages],
+        updatedAt: answerTimestamp,
+      }));
+      return;
+    }
+
+    setUsedCachedAnswer(false);
     await processWithAI(
       transcription,
       effectiveSystemPrompt,
@@ -312,6 +341,47 @@ export function useSystemAudio() {
     }
 
     schedulePendingSpeech();
+  }
+
+  async function findReusableAnswer(
+    transcription: string
+  ): Promise<CachedAnswerMatch | null> {
+    const sessionMessages: CacheableMessage[] =
+      sessionMemoryRef.current.flatMap((message, index) =>
+      typeof message.content === "string"
+        ? [
+            {
+              role: message.role,
+              content: message.content,
+              timestamp: index + 1,
+            },
+          ]
+        : []
+      );
+    const inMemoryMessages: CacheableMessage[] = [
+      ...sessionMessages,
+      ...conversationRef.current.messages,
+    ];
+    const inMemoryMatch = findCachedAnswer(transcription, inMemoryMessages);
+    if (inMemoryMatch) return inMemoryMatch;
+
+    try {
+      const savedConversations = await getAllConversations();
+      let bestMatch: CachedAnswerMatch | null = null;
+      for (const savedConversation of savedConversations) {
+        const match = findCachedAnswer(
+          transcription,
+          savedConversation.messages
+        );
+        if (match && (!bestMatch || match.similarity > bestMatch.similarity)) {
+          bestMatch = match;
+        }
+      }
+      return bestMatch;
+    } catch (cacheError) {
+      console.error("Failed to search saved answers:", cacheError);
+      return null;
+    }
   }
 
   useEffect(() => {
@@ -893,6 +963,7 @@ export function useSystemAudio() {
 
       try {
         setIsAIProcessing(true);
+        setUsedCachedAnswer(false);
         setLastAIResponse("");
         setError("");
 
@@ -1051,15 +1122,15 @@ export function useSystemAudio() {
       lastProcessedTranscriptionRef.current = "";
       lastProcessedTranscriptionAtRef.current = 0;
 
-      // Set up a fresh conversation
-      const conversationId = generateConversationId("sysaudio");
-      setConversation({
-        id: conversationId,
-        title: "",
-        messages: [],
-        createdAt: 0,
-        updatedAt: 0,
-      });
+      if (!conversationRef.current.id) {
+        setConversation({
+          id: generateConversationId("sysaudio"),
+          title: "",
+          messages: [],
+          createdAt: Date.now(),
+          updatedAt: 0,
+        });
+      }
 
       setCapturing(true);
       setIsPopoverOpen(true);
@@ -1195,7 +1266,7 @@ export function useSystemAudio() {
       // Stop native audio capture
       await invoke<string>("stop_system_audio_capture").catch(() => {});
 
-      // Reset ALL states
+      // Stop capture while preserving the visible meeting and its saved history.
       setCapturing(false);
       setIsOfflineMode(false);
       setIsProcessing(false);
@@ -1203,11 +1274,7 @@ export function useSystemAudio() {
       setIsContinuousMode(false);
       setIsRecordingInContinuousMode(false);
       setRecordingProgress(0);
-      setLastTranscription("");
-      lastProcessedTranscriptionRef.current = "";
-      setLastAIResponse("");
       setError("");
-      setIsPopoverOpen(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(`Failed to stop capture: ${errorMessage}`);
@@ -1323,12 +1390,14 @@ export function useSystemAudio() {
   useEffect(() => {
     globalShortcuts.registerSystemAudioCallback(async () => {
       if (capturing) {
-        await stopCapture();
+        await pauseCapture();
       } else {
-        await startCapture();
+        await (conversationRef.current.messages.length > 0
+          ? resumeCapture()
+          : startCapture());
       }
     });
-  }, [startCapture, stopCapture]);
+  }, [capturing, pauseCapture, resumeCapture, startCapture]);
 
   useEffect(() => {
     return () => {
@@ -1502,10 +1571,23 @@ export function useSystemAudio() {
     ignoreContinuousRecording,
   ]);
 
-  const clearConversation = useCallback(() => {
+  const clearConversation = useCallback(async () => {
     clearPendingSpeech();
-    // Save visible messages to session memory so AI remembers context
-    const visibleMessages = [...conversationRef.current.messages].reverse();
+    const currentConversation = conversationRef.current;
+    const visibleMessages = [...currentConversation.messages].reverse();
+
+    if (currentConversation.messages.length > 0) {
+      try {
+        await saveConversation(currentConversation);
+      } catch (saveError) {
+        console.error("Failed to preserve conversation before clearing:", saveError);
+        setError("Could not save this conversation, so the screen was not cleared.");
+        return;
+      }
+    }
+
+    // Clear only the visible workspace. Saved messages remain available for
+    // history and zero-cost similar-question answer reuse.
     sessionMemoryRef.current = [...sessionMemoryRef.current, ...visibleMessages];
     
     setConversation({
@@ -1516,8 +1598,11 @@ export function useSystemAudio() {
       updatedAt: Date.now(),
     });
     setLastTranscription("");
-      lastProcessedTranscriptionRef.current = "";
+    lastProcessedTranscriptionRef.current = "";
+    lastProcessedTranscriptionAtRef.current = 0;
     setLastAIResponse("");
+    setUsedCachedAnswer(false);
+    setError("");
   }, []);
 
   return {
@@ -1530,6 +1615,7 @@ export function useSystemAudio() {
     activePersonaName,
     setActivePersonaName,
     usedLocalKnowledge,
+    usedCachedAnswer,
     isTestMicEnabled,
     setIsTestMicEnabled,
     error,
