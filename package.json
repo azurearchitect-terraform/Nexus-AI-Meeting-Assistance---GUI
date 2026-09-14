@@ -1,7 +1,7 @@
 {
   "name": "nexus-ai-interview-assistance",
-  "private": false,
-  "version": "2.2.0",
+  "private": true,
+  "version": "2.3.0",
   "description": "Nexus Meeting Assistance - A lightning-fast, privacy-first AI assistant.",
   "author": {
     "name": "Nexus"
@@ -60,6 +60,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "katex": "^0.18.7",
     "lucide-react": "^0.539.0",
     "moment": "^2.30.1",
     "react": "^19.1.0",

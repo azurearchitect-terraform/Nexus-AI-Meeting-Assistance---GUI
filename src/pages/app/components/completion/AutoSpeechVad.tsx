@@ -2,11 +2,16 @@ import { fetchSTT } from "@/lib";
 import { UseCompletionReturn } from "@/types";
 import { useMicVAD } from "@ricky0123/vad-react";
 import { LoaderCircleIcon, MicIcon, MicOffIcon } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components";
 import { useApp } from "@/contexts";
 import { floatArrayToWav } from "@/lib/utils";
 import { shouldUsePluelyAPI } from "@/lib/functions/pluely.api";
+import {
+  getSpeechMergeDelay,
+  isActionableSpeech,
+  mergeSpeechSegments,
+} from "@/lib/speech-utterance";
 
 interface AutoSpeechVADProps {
   submit: UseCompletionReturn["submit"];
@@ -23,6 +28,64 @@ const AutoSpeechVADInternal = ({
 }: AutoSpeechVADProps) => {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const { selectedSttProvider, allSttProviders } = useApp();
+  const pendingTranscriptionRef = useRef("");
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submitRef = useRef(submit);
+  const activeTranscriptionsRef = useRef(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    submitRef.current = submit;
+  }, [submit]);
+
+  const flushPendingTranscription = useCallback(() => {
+    if (submitTimerRef.current) {
+      clearTimeout(submitTimerRef.current);
+      submitTimerRef.current = null;
+    }
+
+    const transcription = pendingTranscriptionRef.current;
+    pendingTranscriptionRef.current = "";
+    if (isActionableSpeech(transcription)) {
+      submitRef.current(transcription);
+    }
+  }, []);
+
+  const schedulePendingTranscription = useCallback(() => {
+    if (
+      activeTranscriptionsRef.current > 0 ||
+      !pendingTranscriptionRef.current
+    ) {
+      return;
+    }
+
+    if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+    submitTimerRef.current = setTimeout(
+      flushPendingTranscription,
+      getSpeechMergeDelay(pendingTranscriptionRef.current)
+    );
+  }, [flushPendingTranscription]);
+
+  const queueTranscription = useCallback(
+    (transcription: string) => {
+      if (!isActionableSpeech(transcription)) return;
+
+      pendingTranscriptionRef.current = mergeSpeechSegments(
+        pendingTranscriptionRef.current,
+        transcription
+      );
+      schedulePendingTranscription();
+    },
+    [schedulePendingTranscription]
+  );
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+    };
+  }, []);
 
   const audioConstraints: MediaTrackConstraints =
     microphoneDeviceId && microphoneDeviceId !== "default"
@@ -34,6 +97,12 @@ const AutoSpeechVADInternal = ({
     startOnLoad: true,
     additionalAudioConstraints: audioConstraints,
     onSpeechEnd: async (audio) => {
+      activeTranscriptionsRef.current += 1;
+      if (submitTimerRef.current) {
+        clearTimeout(submitTimerRef.current);
+        submitTimerRef.current = null;
+      }
+
       try {
         // convert float32array to blob
         const audioBlob = floatArrayToWav(audio, 16000, "wav");
@@ -75,9 +144,7 @@ const AutoSpeechVADInternal = ({
           audio: audioBlob,
         });
 
-        if (transcription) {
-          submit(transcription);
-        }
+        if (isMountedRef.current) queueTranscription(transcription);
       } catch (error) {
         console.error("Failed to transcribe audio:", error);
         setState((prev: any) => ({
@@ -86,7 +153,14 @@ const AutoSpeechVADInternal = ({
             error instanceof Error ? error.message : "Transcription failed",
         }));
       } finally {
-        setIsTranscribing(false);
+        activeTranscriptionsRef.current = Math.max(
+          0,
+          activeTranscriptionsRef.current - 1
+        );
+        if (isMountedRef.current) {
+          setIsTranscribing(false);
+          schedulePendingTranscription();
+        }
       }
     },
   });
@@ -98,6 +172,7 @@ const AutoSpeechVADInternal = ({
         onClick={() => {
           if (vad.listening) {
             vad.pause();
+            flushPendingTranscription();
             setEnableVAD(false);
           } else {
             vad.start();

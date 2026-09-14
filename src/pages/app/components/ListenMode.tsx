@@ -69,12 +69,15 @@ export const ListenMode = () => {
     lastTranscription,
     lastAIResponse,
     startCapture,
+    resumeCapture,
+    pauseCapture,
     stopCapture,
     recordingProgress,
     conversation,
     clearConversation,
     activePersonaName,
     usedLocalKnowledge,
+    usedCachedAnswer,
     isTestMicEnabled,
     setIsTestMicEnabled,
   } = systemAudio;
@@ -302,8 +305,18 @@ ${messagesContent}`;
                     : "bg-green-600 hover:bg-green-700 text-white shadow-xs" 
                   : "border border-border/50 bg-background/60 hover:bg-muted/80"
               }`}
-              onClick={capturing ? stopCapture : startCapture}
-              title={capturing ? "Audio is currently being captured. Click to pause/stop." : "Click to start capturing meeting audio."}
+              onClick={async () => {
+                if (capturing) {
+                  await pauseCapture();
+                  setIsPaused(true);
+                } else if (conversation.messages.length > 0 || isPaused) {
+                  await resumeCapture();
+                  setIsPaused(false);
+                } else {
+                  await startCapture();
+                }
+              }}
+              title={capturing ? "Pause audio without clearing the meeting" : "Start or resume audio capture"}
             >
               <div className={`h-2 w-2 rounded-full ${capturing ? (isAiKeyMissing ? "bg-black animate-pulse" : "bg-white animate-pulse") : "bg-muted-foreground"} mr-1.5`} />
               <span>{capturing ? (isAiKeyMissing ? "Audio ON (No Key)" : "Listening") : "System Audio"}</span>
@@ -313,6 +326,11 @@ ${messagesContent}`;
             {usedLocalKnowledge && (
               <div className="px-1.5 py-0.5 text-[10px] rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center shrink-0" title="Local Knowledge Context Active">
                 📚 Local
+              </div>
+            )}
+            {usedCachedAnswer && (
+              <div className="px-1.5 py-0.5 text-[10px] rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center shrink-0" title="Answer reused from saved history without an AI API call">
+                ⚡ Cached
               </div>
             )}
             {activeProfile === "auto" && activePersonaName && (
@@ -385,11 +403,11 @@ ${messagesContent}`;
               size="icon" 
               className="h-7 w-7 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-500/10 cursor-pointer"
               onClick={() => {
-                if (window.confirm("Are you sure you want to clear the conversation?")) {
-                  clearConversation();
+                if (window.confirm("Clear the screen? The saved conversation and reusable answers will be kept.")) {
+                  void clearConversation();
                 }
               }}
-              title="Clear Conversation"
+              title="Clear screen (keeps saved history)"
             >
               <Trash2Icon className="h-3.5 w-3.5" />
             </Button>
@@ -776,13 +794,13 @@ ${messagesContent}`;
               className={`rounded-lg border-border/50 bg-background/60 h-7 px-2 cursor-pointer text-xs font-semibold hover:bg-muted transition-all shrink-0 ${isPaused ? "bg-amber-500/20 text-amber-500 border-amber-500/30" : ""}`}
               onClick={() => {
                 if (capturing) {
-                  stopCapture();
+                  void pauseCapture();
                   setIsPaused(true);
                 } else if (isPaused) {
-                  startCapture();
+                  void resumeCapture();
                   setIsPaused(false);
                 } else {
-                  startCapture();
+                  void startCapture();
                 }
               }}
               title={isPaused ? "Resume Audio Capture" : "Pause Audio Capture"}
@@ -820,4 +838,3 @@ ${messagesContent}`;
     </div>
   );
 };
-

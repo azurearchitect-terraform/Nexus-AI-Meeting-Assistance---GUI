@@ -33,13 +33,13 @@ impl Default for VadConfig {
         Self {
             enabled: true,
             hop_size: 1024,
-            sensitivity_rms: 0.012, 
-            peak_threshold: 0.035,  
-            silence_chunks: 45,     
-            min_speech_chunks: 7,   
-            pre_speech_chunks: 12,  
-            noise_gate_threshold: 0.003, 
-            max_recording_duration_secs: 180, 
+            sensitivity_rms: 0.012,
+            peak_threshold: 0.035,
+            silence_chunks: 45,
+            min_speech_chunks: 7,
+            pre_speech_chunks: 12,
+            noise_gate_threshold: 0.003,
+            max_recording_duration_secs: 180,
         }
     }
 }
@@ -147,7 +147,8 @@ async fn run_vad_capture(
     let mut in_speech = false;
     let mut silence_chunks = 0;
     let mut speech_chunks = 0;
-    let max_samples = sr as usize * 30; // 30s safety cap per utterance
+    let max_utterance_secs = config.max_recording_duration_secs.clamp(30, 90);
+    let max_samples = sr as usize * max_utterance_secs as usize;
 
     // This loop runs FOREVER until the task is aborted by stop_system_audio_capture
     while let Some(sample) = stream.next().await {
@@ -184,7 +185,7 @@ async fn run_vad_capture(
                 speech_buffer.extend_from_slice(&mono);
                 silence_chunks = 0; // Reset silence counter on any speech
 
-                // Safety cap: force emit if exceeds 30s
+                // Keep long scenario questions intact while bounding STT upload size.
                 if speech_buffer.len() > max_samples {
                     let normalized_buffer = normalize_audio_level(&speech_buffer, 0.1);
                     if let Ok(b64) = samples_to_wav_b64(sr, &normalized_buffer) {
