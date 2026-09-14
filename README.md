@@ -1,161 +1,309 @@
-# Pluely v1 🚀
+# Nexus AI Meeting Assistance
 
-_One overlay, no tab, no trace._
+Nexus AI Meeting Assistance is a cross-platform desktop assistant for meetings,
+technical interviews, live conversations, and focused AI support. It combines
+system-audio capture, speech-to-text, configurable AI providers, local
+conversation history, interview preparation, and cost-aware answer reuse in a
+lightweight Tauri application.
 
-<a href="https://pluely.com/">
-  <img src="/images/pluely-v1-listen.png" alt="The Pluely v1 overlay in Listen mode: live transcript, prompt tabs, and the answer panel, floating over the desktop" width="100%" />
-</a>
+The application is built with React, TypeScript, Rust, Tauri, SQLite, and Vite.
 
-<p align="center"><i>The actual overlay in Listen mode, floating over the desktop. Invisible on screen shares.</i></p>
+## Current capabilities
 
----
+### Intelligent live listening
 
-[![Website](https://img.shields.io/badge/Website-pluely.com-blue)](https://pluely.com/)
-[![Docs](https://img.shields.io/badge/Docs-docs.pluely.com-blue)](https://docs.pluely.com)
-[![Tauri](https://img.shields.io/badge/Built%20with-Tauri-orange)](https://tauri.app/)
-[![React](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-blue)](https://reactjs.org/)
-[![Source](<https://img.shields.io/badge/Source-Closed%20(v1%2B)-lightgrey>)](#why-pluely-v1-is-closed-source)
+- Capture system output audio or a selected microphone.
+- Use voice activity detection (VAD) to identify complete speech segments.
+- Support continuous recording when automatic VAD is disabled.
+- Preserve the active transcript and answers when System Audio is paused,
+  stopped, disabled, or enabled again.
+- Keep uninterrupted utterances for up to 90 seconds, allowing long technical
+  and scenario-based questions to remain intact.
+- Buffer nearby speech segments and merge them into one complete question.
+- Preserve STT result order when transcription requests finish concurrently.
+- Remove repeated overlap between adjacent speech segments.
+- Suppress near-duplicate transcriptions even when punctuation or filler words
+  differ.
+- Ignore acknowledgements and non-actionable sounds such as `ok`, `cool`,
+  filler speech, coughing, breathing, background noise, and silence labels.
+- Display live transcription, streaming answers, recording state, and audio
+  activity.
 
-### 💝 **Socials**
+### Cost-aware answer reuse
 
-[![GitHub](https://img.shields.io/badge/GitHub-iamsrikanthnani-black?style=flat&logo=github)](https://github.com/iamsrikanthnani)
-[![X](https://img.shields.io/badge/@srikanthnani-1DA1F2?style=flat&logo=X)](https://x.com/srikanthnani)
-[![Website](https://img.shields.io/badge/Website-srikanthnani.com-blue?style=flat&logo=globe)](https://www.srikanthnani.com/)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-iamsrikanthnani-0077B5?style=flat&logo=linkedin)](https://www.linkedin.com/in/iamsrikanthnani/)
+- Save meeting conversations locally.
+- Compare each new question with previous questions using an explicit
+  similarity threshold of 80%.
+- Return the previous answer immediately when a sufficiently similar question
+  is found.
+- Skip the AI response API call when a saved answer is reused.
+- Search both the current session and persisted conversation history.
+- Mark reused responses with a `Cached` indicator.
+- Keep saved history when the recycle-bin button clears the visible screen.
+- Refuse to clear the screen if the current conversation cannot be saved.
 
-> **Your invisible AI, over everything you do.** Ask about anything on your screen. Listen to any conversation and have the right answer before you need it. One overlay, no tab, no trace. Invisible on screen shares, and no bot ever joins your calls.
+Answer reuse avoids the LLM response request. A configured cloud
+speech-to-text provider may still charge for transcription. Local providers can
+be used to reduce or eliminate provider costs.
 
-📖 Every feature is documented at **[docs.pluely.com](https://docs.pluely.com)**, from the [5-minute quickstart](https://docs.pluely.com/docs/getting-started/quickstart) to [live transcription](https://docs.pluely.com/docs/features/listen-mode), [automatic responses](https://docs.pluely.com/docs/features/auto-responses), and [every keyboard shortcut](https://docs.pluely.com/docs/guides/overlay-shortcuts).
+### Ask mode and multimodal assistance
 
-### 🔒 Why is Pluely closed source now?
+- Ask typed questions and receive streamed Markdown responses.
+- Dictate questions through voice input.
+- Capture a full screenshot or selected screen region.
+- Attach screenshots and image files to supported vision models.
+- Render formatted Markdown, code blocks, tables, mathematics, and copyable
+  responses.
+- Maintain conversational context and local chat history.
+- Start new conversations and review previous chats from the dashboard.
 
-Years of open Pluely code kept getting repackaged and sold as clones, and no license or complaint ever stopped it.
-So v1 ships as signed binaries while the product itself stays free to use at its core.
-The short story is [further down this page](#why-pluely-v1-is-closed-source), and everything else lives at [pluely.com](https://pluely.com).
+### AI provider support
 
----
+Nexus supports built-in configurations for:
 
-## 📥 **Download Pluely**
+- Intelligent automatic provider routing
+- OpenAI
+- Anthropic Claude
+- Google Gemini
+- xAI Grok
+- Groq
+- Mistral AI
+- Cohere
+- Perplexity
+- OpenRouter
+- Ollama for local inference
 
-<div align="center">
+The developer configuration area also supports custom provider definitions,
+custom models, streaming response paths, request variables, and curl-based API
+templates.
 
-### 🚀 **Get the Latest Release**
+### Speech-to-text providers
 
-[![Download for macOS](https://img.shields.io/badge/Download%20for-macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://pluely.com/download/macos) &nbsp; [![Download for Linux](https://img.shields.io/badge/Download%20for-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://pluely.com/download/linux) &nbsp; [![Download for Windows](https://img.shields.io/badge/Download%20for-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://pluely.com/download/windows)
+Built-in STT configurations include:
 
-[![GitHub Release](https://img.shields.io/github/v/release/iamsrikanthnani/pluely?style=for-the-badge&logo=github&label=Latest%20Version)](https://pluely.com/releases) &nbsp; [![GitHub Downloads](https://img.shields.io/github/downloads/iamsrikanthnani/pluely/total?style=for-the-badge&logo=github&label=Total%20Downloads)](https://pluely.com/downloads)
+- Gemini Speech-to-Text
+- OpenAI Whisper
+- Groq Whisper
+- ElevenLabs
+- Google Speech-to-Text
+- Deepgram
+- Azure Speech-to-Text
+- Speechmatics
+- Rev AI
+- IBM Watson Speech-to-Text
 
-**Available formats:** `.dmg` (macOS) • `.msi` / `.exe` (Windows) • `.deb` / `.rpm` / `.AppImage` (Linux)
+Custom STT providers can be configured with endpoint, authentication, audio
+format, request fields, headers, model, and response content path.
 
-**Free plan forever** · no account needed to start · updates ship automatically
+### Interview preparation
 
-</div>
+- Select interview modes for behavioral, technical, system-design, HR,
+  recruiter, leadership, or mixed interviews.
+- Build a reusable STAR story bank with situation, task, action, result,
+  metrics, tags, and role focus.
+- Search and organize saved interview stories.
+- Match relevant experience to interview questions.
+- Score practice answers and retain interview debriefs.
+- Prepare company intelligence and candidate questions.
+- Use configurable expert personas and prompt templates during live sessions.
+- Search locally indexed resume content for self-introduction and
+  background-related questions.
+- Keep general technical questions separate from resume context.
 
----
+### Meeting workflow
 
-## ✨ What is Pluely v1?
+- Generate structured meeting summaries from the captured conversation.
+- Track questions and responses in the current meeting.
+- Add transcript bookmarks through a global shortcut.
+- Copy the latest answer.
+- Choose response language and response length.
+- Configure custom system prompts and personas.
+- Use quick actions for common meeting tasks.
+- Adjust text size, text color, transparency, and focus mode.
+- Pause, resume, stop, and restart audio without losing the visible meeting.
 
-Pluely v1 is a ground-up rebuild: one translucent overlay with two modes, **Ask** and **Listen**, plus a full dashboard for your chats, meetings, files, prompts, and settings. It's built for the moments where switching to a browser tab would cost you the room: interviews, sales calls, standups, lectures, live debugging.
+### Desktop experience
 
-|         🪶 **Lightweight**          |             🕶️ **Invisible**             |                ⚡ **Instant**                |
-| :---------------------------------: | :--------------------------------------: | :------------------------------------------: |
-|      **9 to 16 MB** installer       | Hidden from screen shares and recordings |  Launches in under 100ms, answers in a tap   |
-| A fraction of Electron alternatives | No meeting bot, no participant, no trace | Global hotkeys summon it from inside any app |
-|   Minimal CPU and RAM, even live    |  Can hide from the Dock and taskbar too  |    Streaming answers, live transcription     |
+- Always-on-top overlay.
+- Compact and focus-oriented display modes.
+- Configurable transparency.
+- Optional application icon visibility.
+- Automatic startup support.
+- Global keyboard shortcuts.
+- Screenshot configuration.
+- Audio input and output device selection.
+- Update support for packaged desktop releases.
+- Windows, macOS, and Linux Tauri targets.
 
-## 💬 Ask mode
+### Default keyboard shortcuts
 
-<img src="/images/pluely-v1-ask.gif" alt="Ask mode: attach a screenshot of an error, ask what's breaking, get a streamed answer with follow-up suggestions" width="100%" />
+| Action | Windows/Linux | macOS |
+| --- | --- | --- |
+| Toggle dashboard | `Ctrl+Shift+D` | `Cmd+Shift+D` |
+| Show or hide window | `Ctrl+\` | `Cmd+\` |
+| Focus input | `Ctrl+Shift+I` | `Cmd+Shift+I` |
+| Toggle system audio | `Ctrl+Shift+M` | `Cmd+Shift+M` |
+| Start voice input | `Ctrl+Shift+A` | `Cmd+Shift+A` |
+| Capture screenshot | `Ctrl+Shift+S` | `Cmd+Shift+S` |
+| Panic action | `Ctrl+Shift+X` | `Cmd+Shift+X` |
+| Add transcript bookmark | `Ctrl+Shift+B` | `Cmd+Shift+B` |
 
-Type a question, dictate it with push-to-talk, or let Pluely see your screen: capture it, drag-select a region, attach files, or turn on **Use image** so every message carries a fresh screenshot. Documents go through built-in OCR and stay in context for follow-up questions. Answers stream in as Markdown, and everything is saved locally where you can search, export, or delete it.
+Shortcuts can be changed from the application settings.
 
-## 🎧 Listen mode
+## Privacy and data
 
-<img src="/images/pluely-v1-listen.gif" alt="Listen mode: live transcript of a sales call, an automatic suggested answer, and one-tap follow-up chips" width="100%" />
+- Conversations and messages are stored in a local SQLite database.
+- Story-bank and interview-preparation data remain on the local device.
+- Provider configuration and keys use local application storage and supported
+  secure-storage integrations.
+- The application supports bring-your-own-provider credentials.
+- Ollama can be used for local model inference.
+- The recycle-bin action clears the current screen without deleting saved
+  conversation history.
+- Permanent history deletion remains a separate dashboard/settings operation.
 
-Hit Start and Pluely transcribes your mic and system audio live, with speaker labels and language selection. Automatic responses fire when someone asks a question, after every pause, or only when you tap Suggest. Smart follow-up chips appear under each answer, generated from the actual conversation. Every session is saved as a meeting with its full transcript.
+When a cloud AI or STT provider is selected, the content required for that
+request is sent to that provider and is subject to its terms and pricing.
 
-## 🧰 What else is in the box
+## Architecture
 
-- **200+ hosted models** on Pro plans: GPT, Gemini, Claude, Llama and more, searchable and switchable mid-conversation, no API keys to manage.
-- **Free forever with your own keys**: connect any LLM or speech-to-text provider through a curl template, or plug in the AI CLIs you already have (Claude Code, Gemini CLI, Codex, Qwen Code, Ollama). No limits from us; it's your account.
-- **Real stealth**: excluded from screen capture, absent from recordings and screenshots, never steals focus from the app you're in, and the [icon can disappear from the Dock or taskbar](https://docs.pluely.com/docs/settings/app-icon-stealth). Details in [Stealth & privacy](https://docs.pluely.com/docs/features/stealth-privacy).
-- **Keyboard-first**: global hotkeys for summon, capture, and listening; single keys scroll the answer and transcript once the overlay has focus. Full reference: [Overlay shortcuts](https://docs.pluely.com/docs/guides/overlay-shortcuts).
-- **Private by architecture**: chats, meetings, transcripts, and files live in a local SQLite database on your machine. Your own provider keys stay local. Your conversations never train anything.
-- **Custom prompts with knowledge files**, a document library, plan and usage meters, and identical builds for macOS, Windows, and Linux.
+| Layer | Technology | Responsibility |
+| --- | --- | --- |
+| Desktop shell | Tauri 2 and Rust | Windows, capture, shortcuts, audio, packaging |
+| User interface | React 19 and TypeScript | Overlay, dashboard, settings, chats |
+| Styling | Tailwind CSS and Radix UI | Responsive application components |
+| AI integration | Provider adapters and curl templates | Streaming text and vision requests |
+| Speech | Native audio capture, VAD, STT adapters | Segmentation and transcription |
+| Storage | SQLite and local storage | Chats, prompts, settings, memory |
+| Retrieval | Local document indexing and RAG | Resume and knowledge lookup |
+| Validation | TypeScript, Vitest, Cargo | Frontend and native correctness |
 
-The full tour with visuals is at **[pluely.com/features](https://pluely.com/features)**, and pricing is at **[pluely.com/pricing](https://pluely.com/pricing)**.
+## Prerequisites
 
-## 📚 Documentation
+Install the following before development:
 
-[docs.pluely.com](https://docs.pluely.com) covers every feature, setting, and edge case, with per-OS guides where platforms differ:
+- Node.js 20 or newer
+- pnpm
+- Rust and Cargo
+- Tauri 2 operating-system prerequisites
+- WebView2 on supported Windows systems
+- WebKitGTK development packages on Linux
+- Xcode command-line tools on macOS
 
-|                                       Start here                                        |                                  Features                                   |                                            Help                                             |
-| :-------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: |
-|          [Quickstart](https://docs.pluely.com/docs/getting-started/quickstart)          |      [Listen mode](https://docs.pluely.com/docs/features/listen-mode)       |                   [FAQ](https://docs.pluely.com/docs/troubleshooting/faq)                   |
-|   [macOS permissions](https://docs.pluely.com/docs/getting-started/permissions-macos)   |   [Auto responses](https://docs.pluely.com/docs/features/auto-responses)    | [Shortcuts not working](https://docs.pluely.com/docs/troubleshooting/shortcuts-not-working) |
-| [Windows permissions](https://docs.pluely.com/docs/getting-started/permissions-windows) | [Stealth & privacy](https://docs.pluely.com/docs/features/stealth-privacy)  |            [Connect a CLI](https://docs.pluely.com/docs/settings/connect-a-cli)             |
-|   [Linux permissions](https://docs.pluely.com/docs/getting-started/permissions-linux)   | [Keyboard shortcuts](https://docs.pluely.com/docs/guides/overlay-shortcuts) |                     [Supported models](https://docs.pluely.com/models)                      |
+See the official Tauri prerequisites for platform-specific native packages:
+<https://v2.tauri.app/start/prerequisites/>
 
----
+## Installation
 
-## Why Pluely v1 is closed source
+Clone the repository and use the `main` branch:
 
-Pluely started fully open, first under MIT and later under GPL-3. The code was lifted and sold as rebranded commercial products almost from day one, and moving to GPL-3 changed nothing: the clones ignored the license entirely. I filed complaints and takedown requests and nothing came down. Chasing license violators across countries costs more time and money than one developer has, and even code I shared privately in good faith ended up misused.
+```powershell
+git clone https://github.com/azurearchitect-terraform/Nexus-AI-Meeting-Assistance---GUI.git
+Set-Location "Nexus-AI-Meeting-Assistance---GUI"
+git switch main
+pnpm install --frozen-lockfile
+```
 
-So from v1, a complete rewrite, Pluely ships as signed binaries only. The old GPL-3 code stays available under its license in this repo's history. Please don't ask for source access; the answer will be a polite no until I decide otherwise.
+## Development
 
-What doesn't change: the free plan stays free, releases ship right here, [issues](https://github.com/iamsrikanthnani/pluely/issues) stay open for bug reports, and your data stays on your device.
+Run the desktop application:
 
----
+```powershell
+pnpm tauri dev
+```
 
-## 📋 Prerequisites
+Run only the frontend:
 
-Pluely installs like any normal desktop app. On Linux you need the WebKitGTK runtime that Tauri apps use, see [Tauri's prerequisites page](https://v2.tauri.app/start/prerequisites/) for your distro. macOS and Windows need nothing extra: grant the [screen and microphone permissions](https://docs.pluely.com/docs/getting-started/permissions-macos) on first run and you're set.
+```powershell
+pnpm dev
+```
 
----
+## Configuration
 
-## 🐛 Feedback & bug reports
+Before using live assistance:
 
-Found a bug or have an idea? Open a [GitHub issue](https://github.com/iamsrikanthnani/pluely/issues) or use [pluely.com/feedback](https://pluely.com/feedback). Real reports get fixed fast. For account or license help: [support@pluely.com](mailto:support@pluely.com).
+1. Open the dashboard.
+2. Configure an AI provider and model, or select a local Ollama model.
+3. Configure a speech-to-text provider.
+4. Select the correct system output or microphone device.
+5. Choose a persona, prompt, response language, and response length.
+6. Start System Audio from the overlay.
 
-> 💡 **Like this project?** Consider [buying me a coffee ☕](https://www.buymeacoffee.com/srikanthnani)
+Provider API costs are controlled by the selected provider. Cached-answer reuse
+reduces repeat LLM requests, while local models provide the strongest option
+for cost control.
 
----
+## Quality checks
 
-## 📄 License
+Run all unit tests:
 
-Pluely v1 and later are proprietary, closed-source software distributed as binaries. See [Why Pluely v1 is closed source](#why-pluely-v1-is-closed-source). Versions that were published under the GPL-3 remain available under that license in this repository's history.
+```powershell
+pnpm exec vitest run
+```
 
----
+Run TypeScript validation:
 
-## 🙏 Acknowledgments
+```powershell
+pnpm exec tsc --noEmit
+```
 
-- **[Tauri](https://tauri.app/)** - Amazing desktop framework
-- **[tauri-nspanel](https://github.com/ahkohd/tauri-nspanel)** - macOS native panel integration for Tauri
-- **[shadcn/ui](https://ui.shadcn.com/)** - Beautiful UI components
+Build the frontend:
 
----
+```powershell
+pnpm build
+```
 
-## 🔗 Links
+Check the Rust application:
 
-- **Website**: [pluely.com](https://pluely.com/)
-- **Documentation**: [docs.pluely.com](https://docs.pluely.com)
-- **Models**: [pluely.com/models](https://pluely.com/models)
-- **Pricing**: [pluely.com/pricing](https://pluely.com/pricing)
-- **Releases**: [pluely.com/releases](https://pluely.com/releases)
-- **Issues**: [GitHub Issues](https://github.com/iamsrikanthnani/pluely/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/iamsrikanthnani/pluely/discussions)
+```powershell
+cargo check --manifest-path src-tauri\Cargo.toml
+```
 
----
+## Production build
 
-### 🌐 **Let's Connect**
+Build the native desktop packages:
 
-[![X](https://img.shields.io/badge/@srikanthnani-black?style=for-the-badge&logo=X)](https://x.com/srikanthnani)&nbsp;
-[![Website](https://img.shields.io/badge/Website-srikanthnani.com-black?style=for-the-badge&logo=globe)](https://www.srikanthnani.com/)&nbsp;
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-iamsrikanthnani-black?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/iamsrikanthnani/)
-[![GitHub](https://img.shields.io/badge/GitHub-iamsrikanthnani-black?style=for-the-badge&logo=github)](https://github.com/iamsrikanthnani)&nbsp;
+```powershell
+pnpm tauri build
+```
 
----
+Generated installers are placed under:
 
-**Made with ❤️ by [Srikanth Nani](https://www.srikanthnani.com/)**
+```text
+src-tauri\target\release\bundle
+```
+
+## Project structure
+
+```text
+src/
+  components/       Shared UI and Markdown rendering
+  config/           Providers, shortcuts, prompts, and constants
+  contexts/         Application and theme state
+  hooks/            Chat, audio, completion, and settings workflows
+  lib/              AI, STT, storage, RAG, caching, and interview logic
+  pages/            Overlay and dashboard pages
+src-tauri/
+  src/              Native Rust commands and platform integrations
+  capabilities/     Tauri permission configuration
+```
+
+## Contributing
+
+1. Create a focused branch from `main`.
+2. Keep changes limited to one feature or fix.
+3. Add tests for behavior changes.
+4. Run the TypeScript checks, tests, frontend build, and relevant Rust checks.
+5. Open a pull request with the motivation, implementation details, and test
+   evidence.
+
+## Security
+
+Do not commit provider keys, tokens, credentials, meeting transcripts, resumes,
+or generated local databases. Report security concerns according to
+[`SECURITY.md`](SECURITY.md).
+
+## License
+
+This repository is licensed under the GNU General Public License v3.0. See
+[`LICENSE`](LICENSE) for the complete terms.
