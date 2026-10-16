@@ -1,13 +1,21 @@
 use base64::{engine::general_purpose, Engine as _};
 use futures_util::StreamExt;
+use once_cell::sync::Lazy;
 use reqwest::multipart::{Form, Part};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_machine_uid::MachineUidExt;
+
+static API_CONFIG_CACHE: Lazy<Mutex<HashMap<(Option<String>, Option<String>), (ApiResponseConfig, Instant)>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+const API_CONFIG_CACHE_TTL: Duration = Duration::from_secs(60);
 
 fn get_app_endpoint() -> Result<String, String> {
     if let Ok(endpoint) = env::var("APP_ENDPOINT") {
@@ -148,7 +156,7 @@ pub struct PluelyPromptsResponse {
 }
 
 // API Response Configuration Structs
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ApiResponseConfig {
     url: String,
     user_token: String,
@@ -295,6 +303,15 @@ async fn fetch_api_response_config(
     provider: Option<String>,
     model: Option<String>,
 ) -> Result<ApiResponseConfig, String> {
+    let cache_key = (provider.clone(), model.clone());
+    if let Ok(guard) = API_CONFIG_CACHE.lock() {
+        if let Some((cached_config, cached_at)) = guard.get(&cache_key) {
+            if cached_at.elapsed() < API_CONFIG_CACHE_TTL {
+                return Ok(cached_config.clone());
+            }
+        }
+    }
+
     // Get environment variables
     let app_endpoint = get_app_endpoint()?;
     let api_access_key = get_api_access_key()?;
@@ -323,7 +340,7 @@ async fn fetch_api_response_config(
         request = request.header("model", m);
     }
 
-    let response = request.send().await.map_err(|e| {
+    let response = request.timeout(std::time::Duration::from_secs(10)).send().await.map_err(|e| {
         let error_msg = format!("{}", e);
         if error_msg.contains("url (") {
             let parts: Vec<&str> = error_msg.split(" for url (").collect();
@@ -360,6 +377,11 @@ async fn fetch_api_response_config(
         .json()
         .await
         .map_err(|e| format!("Failed to parse API config response: {}", e))?;
+
+    if let Ok(mut guard) = API_CONFIG_CACHE.lock() {
+        guard.insert(cache_key, (api_config.clone(), Instant::now()));
+    }
+
     Ok(api_config)
 }
 
@@ -433,6 +455,7 @@ async fn perform_user_audio_transcription(
         .post(url)
         .bearer_auth(token)
         .multipart(form)
+        .timeout(std::time::Duration::from_secs(30))
         .send()
         .await
         .map_err(|e| format!("Transcription request failed to send: {}", e))?;

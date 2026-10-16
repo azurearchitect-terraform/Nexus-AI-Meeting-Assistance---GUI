@@ -21,15 +21,16 @@ export function setByPath(obj: any, path: string, value: any): void {
 }
 
 export async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = () => {
-      const base64data = (reader.result as string)?.split(",")[1] ?? "";
-      resolve(base64data);
-    };
-    reader.onerror = reject;
-  });
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  // Process in 8KB chunks to avoid call stack limits on large blobs
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
 }
 
 export function extractVariables(

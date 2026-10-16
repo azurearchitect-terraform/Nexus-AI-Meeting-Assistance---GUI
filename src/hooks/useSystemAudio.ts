@@ -626,7 +626,11 @@ export function useSystemAudio() {
 
           try {
             const base64Audio = event.payload as string;
-            // Convert to blob
+
+            // Check Pluely API once, reuse result to avoid double IPC call
+            const usePluelyAPI = await shouldUsePluelyAPI();
+
+            // Convert base64 to blob (required for both paths)
             const binaryString = atob(base64Audio);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
@@ -634,7 +638,6 @@ export function useSystemAudio() {
             }
             const audioBlob = new Blob([bytes], { type: "audio/wav" });
 
-            const usePluelyAPI = await shouldUsePluelyAPI();
             let effectiveSttProvider = selectedSttProviderRef.current;
 
             if (!effectiveSttProvider?.provider && !usePluelyAPI) {
@@ -649,7 +652,6 @@ export function useSystemAudio() {
               (p) => p.id === effectiveSttProvider.provider
             ) || allSttProvidersRef.current[0];
 
-            // Add timeout wrapper for STT request (30 seconds)
             // Borrow API key from AI provider if STT provider is Gemini and missing key
             if (
               effectiveSttProvider?.provider === "gemini-stt" &&
