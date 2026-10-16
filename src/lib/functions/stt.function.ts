@@ -150,10 +150,7 @@ export async function fetchSTT(params: STTParams): Promise<string> {
       provider.curl.includes("-F ") || provider.curl.includes("--form");
     if (isForm) {
       const form = new FormData();
-      const freshBlob = new Blob([await audio.arrayBuffer()], {
-        type: audio.type,
-      });
-      form.append("file", freshBlob, "audio.wav");
+      form.append("file", audio, "audio.wav");
       const headerKeys = Object.keys(headers).map((k) =>
         k.toUpperCase().replace(/[-_]/g, "")
       );
@@ -199,9 +196,7 @@ export async function fetchSTT(params: STTParams): Promise<string> {
       body = form;
     } else if (isBinaryUpload) {
       // Deepgram-style: raw binary body
-      body = new Blob([await audio.arrayBuffer()], {
-        type: audio.type,
-      });
+      body = audio;
     } else {
       // Google-style: JSON payload with base64
       allVariables.AUDIO = await blobToBase64(audio);
@@ -209,18 +204,32 @@ export async function fetchSTT(params: STTParams): Promise<string> {
       body = JSON.stringify(deepVariableReplacer(dataObj, allVariables));
     }
 
-    const fetchFunction = url?.includes("http") ? fetch : tauriFetch;
+    const isCorsFriendly =
+      url?.includes("api.openai.com") ||
+      url?.includes("generativelanguage.googleapis.com") ||
+      url?.includes("api.groq.com") ||
+      url?.includes("api.x.ai");
 
-    // Send request
+    const fetchFunction = isCorsFriendly ? fetch : tauriFetch;
+
+    // Send request with 25-second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
     let response: Response;
     try {
       response = await fetchFunction(url, {
         method: curlJson.method || "POST",
         headers: finalHeaders,
         body: curlJson.method === "GET" ? undefined : body,
+        signal: controller.signal,
       });
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === "AbortError" || controller.signal.aborted) {
+        throw new Error("Speech-to-Text request timed out (25s)");
+      }
       throw new Error(`Network error: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     if (!response.ok) {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components";
 import { AudioVisualizer } from "@/pages/app/components/speech/audio-visualizer";
-import { shouldUsePluelyAPI, fetchSTT } from "@/lib";
+import { fetchSTT } from "@/lib";
 import { useApp } from "@/contexts";
 import { StopCircle, Send } from "lucide-react";
 
@@ -112,7 +112,7 @@ export const AudioRecorder = ({
         }
       };
 
-      recorder.start(100);
+      recorder.start(1000);
 
       durationIntervalRef.current = setInterval(() => {
         setDuration(Date.now() - startTimeRef.current);
@@ -149,13 +149,12 @@ export const AudioRecorder = ({
     try {
       const audioBlob = new Blob(chunks, { type: mimeType });
 
-      const usePluelyAPI = await shouldUsePluelyAPI();
       const provider = allSttProviders.find(
         (p) => p.id === selectedSttProvider.provider
       );
 
       const text = await fetchSTT({
-        provider: usePluelyAPI ? undefined : provider,
+        provider,
         selectedProvider: selectedSttProvider,
         audio: audioBlob,
       });
