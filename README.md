@@ -1,5 +1,7 @@
 # Nexus AI Meeting Assistance
 
+> **Latest Release: v2.4.0 (Released: October 20, 2026)**
+
 Nexus AI Meeting Assistance is a cross-platform desktop assistant for meetings,
 technical interviews, live conversations, and focused AI support. It combines
 system-audio capture, speech-to-text, configurable AI providers, local
