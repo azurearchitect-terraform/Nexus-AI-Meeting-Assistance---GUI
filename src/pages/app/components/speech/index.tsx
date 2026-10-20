@@ -27,6 +27,8 @@ import { useSystemAudioType } from "@/hooks";
 import { useApp } from "@/contexts";
 import { cn } from "@/lib/utils";
 
+export * from "./ListeningAnimation";
+
 export const SystemAudio = (props: useSystemAudioType) => {
   const {
     capturing,

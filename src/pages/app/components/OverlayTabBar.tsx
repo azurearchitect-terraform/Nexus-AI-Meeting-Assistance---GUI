@@ -16,6 +16,8 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Popover, PopoverTrigger, PopoverContent, Slider } from "@/components";
 import { useApp } from "@/contexts";
+import { useApp as useAppHook } from "@/hooks";
+import { MiniSoundWave } from "./speech/ListeningAnimation";
 import { getAllPersistedProviderKeys, getPersistedProviderKey } from "@/lib/storage/provider-keys";
 
 interface OverlayTabBarProps {
@@ -28,6 +30,8 @@ export const OverlayTabBar = ({
   setActiveTab,
 }: OverlayTabBarProps) => {
   const { selectedAIProvider } = useApp();
+  const { systemAudio } = useAppHook();
+  const { capturing, isSpeechActive, isProcessing, isAIProcessing } = systemAudio;
   const bank = getAllPersistedProviderKeys();
   const isAuto = selectedAIProvider?.provider === "auto";
   const hasAutoKey = isAuto && !!(
@@ -118,7 +122,11 @@ export const OverlayTabBar = ({
             onClick={() => setActiveTab("listen")}
             className="flex items-center gap-2 rounded-full px-4"
           >
-            <HeadphonesIcon className="h-4 w-4" />
+            {capturing ? (
+              <MiniSoundWave capturing={true} isSpeechActive={isSpeechActive} />
+            ) : (
+              <HeadphonesIcon className="h-4 w-4" />
+            )}
             <span>Listen</span>
           </Button>
           <Button
@@ -130,6 +138,33 @@ export const OverlayTabBar = ({
             <BriefcaseIcon className="h-4 w-4" />
             <span>Intel</span>
           </Button>
+                {/* Live Listening & Voice Activity Pill */}
+        {capturing && (
+          <button
+            onClick={() => setActiveTab("listen")}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+              isSpeechActive
+                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.35)] animate-voice-glow"
+                : isProcessing
+                ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
+                : isAIProcessing
+                ? "bg-primary/15 text-primary border-primary/40 animate-pulse"
+                : "bg-green-500/10 text-green-400 border-green-500/30"
+            }`}
+            title="Meeting Audio Capture Active - Click to view Listen tab"
+          >
+            <MiniSoundWave capturing={true} isSpeechActive={isSpeechActive} />
+            <span>
+              {isSpeechActive
+                ? "Capturing Voice..."
+                : isProcessing
+                ? "Transcribing..."
+                : isAIProcessing
+                ? "Answering..."
+                : "Listening"}
+            </span>
+          </button>
+        )}
         </div>
       </div>
 
