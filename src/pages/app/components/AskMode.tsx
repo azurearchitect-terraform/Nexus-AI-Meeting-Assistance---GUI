@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Markdown } from "@/components";
 import { ActionToolbar } from "./ActionToolbar";
+import { MiniSoundWave } from "./speech/ListeningAnimation";
 import { useApp as useAppHook, useChatCompletion } from "@/hooks";
 import {
   MicIcon,
@@ -17,7 +18,7 @@ import moment from "moment";
 export const AskMode = () => {
   const [messages, setMessages] = useState<ChatConversation | null>(null);
   const { systemAudio } = useAppHook();
-  const { capturing, startCapture, stopCapture } = systemAudio;
+  const { capturing, isSpeechActive, startCapture, stopCapture } = systemAudio;
   
   // We use a blank conversationId for a fresh chat session in Ask mode
   const completion = useChatCompletion("", messages, setMessages);
@@ -83,11 +84,19 @@ export const AskMode = () => {
             variant={capturing ? "default" : "outline"} 
             onClick={handlePushToTalkToggle}
             className={`rounded-xl border-border/50 h-10 px-4 cursor-pointer transition-all shrink-0 font-medium ${
-              capturing ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" : "bg-background/60 hover:bg-muted/80"
+              capturing 
+                ? isSpeechActive
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md ring-2 ring-emerald-400 animate-voice-glow"
+                  : "bg-green-600 hover:bg-green-700 text-white shadow-sm" 
+                : "bg-background/60 hover:bg-muted/80"
             }`}
           >
-            <MicIcon className={`h-4 w-4 mr-2 ${capturing ? "text-white" : "text-primary"}`} />
-            {capturing ? "Listening..." : "Push to talk"}
+            {capturing ? (
+              <MiniSoundWave capturing={true} isSpeechActive={isSpeechActive} className="mr-2" />
+            ) : (
+              <MicIcon className="h-4 w-4 mr-2 text-primary" />
+            )}
+            {capturing ? (isSpeechActive ? "Capturing Voice..." : "Listening...") : "Push to talk"}
             <span className="ml-2 text-[10px] font-mono border border-border/50 bg-muted/60 rounded px-1.5 py-0.5 text-muted-foreground">Space</span>
           </Button>
 

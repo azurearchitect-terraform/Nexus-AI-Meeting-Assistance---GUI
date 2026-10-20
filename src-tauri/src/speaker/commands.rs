@@ -5,6 +5,7 @@ use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use futures_util::StreamExt;
 use hound::{WavSpec, WavWriter};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::VecDeque;
 use std::io::Cursor;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -147,6 +148,7 @@ async fn run_vad_capture(
     let mut in_speech = false;
     let mut silence_chunks = 0;
     let mut speech_chunks = 0;
+    let mut metric_counter: usize = 0;
     let max_utterance_secs = config.max_recording_duration_secs.clamp(30, 90);
     let max_samples = sr as usize * max_utterance_secs as usize;
 
@@ -168,6 +170,20 @@ async fn run_vad_capture(
 
             let (rms, peak) = calculate_audio_metrics(&mono);
             let is_speech = rms > config.sensitivity_rms || peak > config.peak_threshold;
+
+            // Emit live audio level metrics for visualizer every 4 chunks (~85ms)
+            metric_counter += 1;
+            if metric_counter >= 4 {
+                metric_counter = 0;
+                let _ = app.emit(
+                    "audio-level",
+                    json!({
+                        "rms": rms,
+                        "peak": peak,
+                        "is_speech": in_speech || is_speech
+                    }),
+                );
+            }
 
             if is_speech {
                 if !in_speech {
@@ -196,6 +212,7 @@ async fn run_vad_capture(
                     speech_buffer.clear();
                     in_speech = false;
                     speech_chunks = 0;
+                    let _ = app.emit("speech-end", ());
                 }
             } else {
                 // Silence detected
@@ -241,6 +258,7 @@ async fn run_vad_capture(
                         in_speech = false;
                         silence_chunks = 0;
                         speech_chunks = 0;
+                        let _ = app.emit("speech-end", ());
                     }
                 } else {
                     // Not in speech yet - maintain rolling pre-speech buffer

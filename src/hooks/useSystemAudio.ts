@@ -129,6 +129,8 @@ export function useSystemAudio() {
   const globalShortcuts = useGlobalShortcuts();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [isSpeechActive, setIsSpeechActive] = useState<boolean>(false);
+  const [audioLevel, setAudioLevel] = useState<number>(0);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAIProcessing, setIsAIProcessing] = useState(false);
@@ -459,6 +461,9 @@ export function useSystemAudio() {
     let discardedUnlisten: (() => void) | undefined;
     let panicUnlisten: (() => void) | undefined;
     let customShortcutUnlisten: (() => void) | undefined;
+    let speechStartUnlisten: (() => void) | undefined;
+    let speechEndUnlisten: (() => void) | undefined;
+    let audioLevelUnlisten: (() => void) | undefined;
 
     const setupContinuousListeners = async () => {
       try {
@@ -494,6 +499,7 @@ export function useSystemAudio() {
         discardedUnlisten = await listen("speech-discarded", (event) => {
           const reason = event.payload as string;
           console.log("Speech discarded:", reason);
+          setIsSpeechActive(false); // Discarded noise
           // Don't show error - this is expected behavior
         });
 
@@ -505,6 +511,29 @@ export function useSystemAudio() {
         // When capture truly stops (user clicked stop or task aborted)
         await listen("capture-stopped", () => {
           vadActiveRef.current = false;
+        });
+        setIsSpeechActive(false);
+        setAudioLevel(0);
+        // Speech start - voice activity detected in real time
+        speechStartUnlisten = await listen("speech-start", () => {
+          setIsSpeechActive(true);
+        });
+
+        // Speech end - silence reached or max duration hit
+        speechEndUnlisten = await listen("speech-end", () => {
+          setIsSpeechActive(false);
+        });
+
+        // Real-time audio metrics from VAD loop (~85ms updates)
+        audioLevelUnlisten = await listen("audio-level", (event: any) => {
+          const payload = event.payload as { rms?: number; peak?: number; is_speech?: boolean };
+          if (payload) {
+            const normalized = Math.min(1, Math.max(0, (payload.rms || 0) * 12));
+            setAudioLevel(normalized);
+            if (payload.is_speech) {
+              setIsSpeechActive(true);
+            }
+          }
         });
 
         // Panic triggered - instantly clear everything
@@ -610,6 +639,9 @@ export function useSystemAudio() {
       if (discardedUnlisten) discardedUnlisten();
       if (panicUnlisten) panicUnlisten();
       if (customShortcutUnlisten) customShortcutUnlisten();
+      if (speechStartUnlisten) speechStartUnlisten();
+      if (speechEndUnlisten) speechEndUnlisten();
+      if (audioLevelUnlisten) audioLevelUnlisten();
     };
   }, []);
 
@@ -631,6 +663,7 @@ export function useSystemAudio() {
             speechDebounceRef.current = null;
           }
           setIsProcessing(true);
+          setIsSpeechActive(false); // Speech ended, now transcribing
 
           try {
             const base64Audio = event.payload as string;
@@ -1278,6 +1311,8 @@ export function useSystemAudio() {
 
       // Stop capture while preserving the visible meeting and its saved history.
       setCapturing(false);
+      setIsSpeechActive(false);
+      setAudioLevel(0);
       setIsOfflineMode(false);
       setIsProcessing(false);
       setIsAIProcessing(false);
@@ -1318,6 +1353,8 @@ export function useSystemAudio() {
 
       // Only stop capturing — preserve conversation, transcription, AI response
       setCapturing(false);
+      setIsSpeechActive(false);
+      setAudioLevel(0);
       setIsOfflineMode(false);
       setIsProcessing(false);
       setIsAIProcessing(false);
@@ -1617,6 +1654,8 @@ export function useSystemAudio() {
 
   return {
     capturing,
+    isSpeechActive,
+    audioLevel,
     isOfflineMode,
     isProcessing,
     isAIProcessing,

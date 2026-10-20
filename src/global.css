@@ -207,3 +207,41 @@ body {
   word-wrap: break-word !important;
   white-space: pre-wrap !important;
 }
+
+
+/* Real-time Listening & Speech Animations */
+@keyframes soundwave-idle {
+  0% { transform: scaleY(0.2); }
+  50% { transform: scaleY(0.65); }
+  100% { transform: scaleY(0.2); }
+}
+
+@keyframes soundwave-active {
+  0% { transform: scaleY(0.25); }
+  35% { transform: scaleY(0.95); }
+  70% { transform: scaleY(0.5); }
+  100% { transform: scaleY(0.25); }
+}
+
+@keyframes voice-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.9));
+  }
+}
+
+.animate-soundwave-idle {
+  animation: soundwave-idle 1.2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.animate-soundwave-active {
+  animation: soundwave-active 0.45s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.animate-voice-glow {
+  animation: voice-glow 1.5s ease-in-out infinite;
+}

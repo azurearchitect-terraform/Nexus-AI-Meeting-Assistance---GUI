@@ -1,3 +1,4 @@
+import { ListeningWaveVisualizer, MiniSoundWave } from "./speech/ListeningAnimation";
 import { useState, useEffect, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { 
@@ -64,6 +65,8 @@ export const ListenMode = () => {
   const { systemAudio } = useAppHook();
   const {
     capturing,
+    isSpeechActive,
+    audioLevel,
     isProcessing,
     isAIProcessing,
     lastTranscription,
@@ -72,7 +75,6 @@ export const ListenMode = () => {
     resumeCapture,
     pauseCapture,
     stopCapture,
-    recordingProgress,
     conversation,
     clearConversation,
     activePersonaName,
@@ -298,10 +300,12 @@ ${messagesContent}`;
             <Button 
               variant={capturing ? "default" : "ghost"} 
               size="sm" 
-              className={`h-7 rounded-lg px-2 text-xs shrink-0 cursor-pointer ${
+              className={`h-7 rounded-lg px-2 text-xs shrink-0 cursor-pointer transition-all ${
                 capturing 
                   ? isAiKeyMissing 
                     ? "bg-amber-500 hover:bg-amber-600 text-black font-semibold shadow-xs" 
+                    : isSpeechActive
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm ring-1 ring-emerald-400"
                     : "bg-green-600 hover:bg-green-700 text-white shadow-xs" 
                   : "border border-border/50 bg-background/60 hover:bg-muted/80"
               }`}
@@ -316,10 +320,18 @@ ${messagesContent}`;
                   await startCapture();
                 }
               }}
-              title={capturing ? "Pause audio without clearing the meeting" : "Start or resume audio capture"}
+              title={capturing ? (isSpeechActive ? "Capturing voice now - Click to pause" : "Listening - Click to pause") : "Start audio capture"}
             >
-              <div className={`h-2 w-2 rounded-full ${capturing ? (isAiKeyMissing ? "bg-black animate-pulse" : "bg-white animate-pulse") : "bg-muted-foreground"} mr-1.5`} />
-              <span>{capturing ? (isAiKeyMissing ? "Audio ON (No Key)" : "Listening") : "System Audio"}</span>
+              <MiniSoundWave capturing={capturing} isSpeechActive={isSpeechActive} className="mr-1.5" />
+              <span>
+                {capturing
+                  ? isAiKeyMissing
+                    ? "Audio ON (No Key)"
+                    : isSpeechActive
+                    ? "Capturing Voice..."
+                    : "Listening"
+                  : "System Audio"}
+              </span>
             </Button>
 
             {/* Persona / Local Knowledge Micro-Badges */}
@@ -433,6 +445,8 @@ ${messagesContent}`;
           <div className="flex items-center gap-1.5 shrink-0">
             {isAiKeyMissing ? (
               <AlertTriangleIcon className="h-3.5 w-3.5 text-amber-500" />
+            ) : isSpeechActive ? (
+              <MiniSoundWave capturing={true} isSpeechActive={true} />
             ) : (
               <MicIcon className={`h-3.5 w-3.5 ${capturing ? "text-green-500 animate-pulse" : "text-muted-foreground"}`} />
             )}
@@ -441,10 +455,28 @@ ${messagesContent}`;
             </span>
           </div>
           <p className="text-xs font-medium text-foreground truncate select-text">
-            {latestQuestion ? (
+            {latestQuestion && !isSpeechActive && !isProcessing ? (
               latestQuestion
+            ) : isSpeechActive ? (
+              <span className="text-emerald-500 font-semibold flex items-center gap-1.5 animate-pulse">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                Capturing voice in real time...
+              </span>
             ) : isProcessing ? (
-              <span className="text-primary animate-pulse">Transcribing speech...</span>
+              <span className="text-primary font-medium flex items-center gap-1.5 animate-pulse">
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                Transcribing question...
+              </span>
+            ) : latestQuestion ? (
+              latestQuestion
+            ) : capturing ? (
+              <span className="text-muted-foreground/80 italic flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                Listening for speech / interviewer question...
+              </span>
             ) : (
               <span className="text-muted-foreground/60 italic">Waiting for speech / interviewer question...</span>
             )}
@@ -771,21 +803,13 @@ ${messagesContent}`;
         <div className="flex items-center justify-between gap-2 shrink-0 pt-1.5 border-t border-border/40 overflow-hidden w-full">
           {/* Left: Audio Wave Visualizer & Transport Controls */}
           <div className="flex items-center gap-1.5 min-w-0 shrink-0">
-            {/* Compact Audio Wave Visualizer */}
-            <div 
-              className="h-7 w-16 sm:w-24 bg-green-500/10 rounded-lg flex items-center justify-center border border-green-500/20 overflow-hidden relative shrink-0"
-              title="Real-time Audio Activity"
-            >
-              <div className="w-full flex items-center justify-center gap-0.5 px-1.5 z-10 h-full py-1">
-                {Array.from({ length: 16 }).map((_, i) => (
-                  <div 
-                    key={i} 
-                    className="w-1 bg-green-500/90 rounded-full transition-all duration-75" 
-                    style={{ height: capturing ? `${Math.max(15, Math.random() * (recordingProgress || 100))}%` : '15%' }} 
-                  />
-                ))}
-              </div>
-            </div>
+            {/* Real-time Responsive Audio Wave Visualizer */}
+            <ListeningWaveVisualizer
+              capturing={capturing}
+              isSpeechActive={isSpeechActive}
+              audioLevel={audioLevel}
+              isPaused={isPaused}
+            />
 
             {/* Transport controls: Pause/Resume & Stop */}
             <Button 
