@@ -1,5 +1,5 @@
-export const SPEECH_MERGE_DELAY_MS = 2300;
-export const INCOMPLETE_SPEECH_MERGE_DELAY_MS = 3800;
+export const SPEECH_MERGE_DELAY_MS = 250;
+export const INCOMPLETE_SPEECH_MERGE_DELAY_MS = 600;
 
 const NON_ACTIONABLE_PHRASES = new Set([
   "ah",
@@ -247,7 +247,7 @@ export function getSpeechMergeDelay(text: string): number {
   if (SCENARIO_LEAD.test(normalized) && !normalized.includes("?")) {
     return INCOMPLETE_SPEECH_MERGE_DELAY_MS;
   }
-  if (/[?!.]["')\]]?$/.test(normalized)) return SPEECH_MERGE_DELAY_MS;
+  if (/[?!.]["')\]]?$/.test(normalized)) return 200;
   if (/[,;:—–-]$|\.\.\.$/.test(normalized)) {
     return INCOMPLETE_SPEECH_MERGE_DELAY_MS;
   }
