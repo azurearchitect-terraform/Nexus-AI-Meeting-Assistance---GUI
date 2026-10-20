@@ -460,6 +460,7 @@ Temporarily switch to "Groq" or "Gemini", paste your API key, press the key icon
       url?.includes("api.openai.com") ||
       url?.includes("generativelanguage.googleapis.com") ||
       url?.includes("api.groq.com") ||
+      url?.includes("api.anthropic.com") ||
       url?.includes("api.x.ai");
 
     const fetchFunction = isCorsFriendly ? fetch : tauriFetch;

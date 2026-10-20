@@ -197,7 +197,7 @@ const View = () => {
                           : "!bg-muted/50 dark:!bg-muted/30 rounded-tl-sm"
                       }`}
                     >
-                      <Markdown>{message.content}</Markdown>
+                      <Markdown isStreaming={completion.isLoading && !isUser && index === array.length - 1}>{message.content}</Markdown>
                     </Card>
                     <Badge
                       variant="outline"
