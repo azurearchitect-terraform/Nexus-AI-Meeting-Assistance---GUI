@@ -10,3 +10,4 @@ export * from "./speech/StatusIndicator";
 export * from "./ApiStatusIndicator";
 export * from "./InterviewContextModal";
 export * from "./SettingsButton";
+export * from "./QuickAiSettingsModal";

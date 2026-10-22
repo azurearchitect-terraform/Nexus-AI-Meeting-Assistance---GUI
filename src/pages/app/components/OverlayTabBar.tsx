@@ -158,33 +158,33 @@ export const OverlayTabBar = ({
             <BriefcaseIcon className="h-4 w-4" />
             <span>Intel</span>
           </Button>
-                {/* Live Listening & Voice Activity Pill */}
-        {capturing && (
-          <button
-            onClick={() => setActiveTab("listen")}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-              isSpeechActive
-                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.35)] animate-voice-glow"
-                : isProcessing
-                ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
-                : isAIProcessing
-                ? "bg-primary/15 text-primary border-primary/40 animate-pulse"
-                : "bg-green-500/10 text-green-400 border-green-500/30"
-            }`}
-            title="Meeting Audio Capture Active - Click to view Listen tab"
-          >
-            <MiniSoundWave capturing={true} isSpeechActive={isSpeechActive} />
-            <span>
-              {isSpeechActive
-                ? "Capturing Voice..."
-                : isProcessing
-                ? "Transcribing..."
-                : isAIProcessing
-                ? "Answering..."
-                : "Listening"}
-            </span>
-          </button>
-        )}
+          {/* Live Listening & Voice Activity Pill */}
+          {capturing && (
+            <button
+              onClick={() => setActiveTab("listen")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                isSpeechActive
+                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.35)] animate-voice-glow"
+                  : isProcessing
+                  ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
+                  : isAIProcessing
+                  ? "bg-primary/15 text-primary border-primary/40 animate-pulse"
+                  : "bg-green-500/10 text-green-400 border-green-500/30"
+              }`}
+              title="Meeting Audio Capture Active - Click to view Listen tab"
+            >
+              <MiniSoundWave capturing={true} isSpeechActive={isSpeechActive} />
+              <span>
+                {isSpeechActive
+                  ? "Capturing Voice..."
+                  : isProcessing
+                  ? "Transcribing..."
+                  : isAIProcessing
+                  ? "Answering..."
+                  : "Listening"}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -278,9 +278,19 @@ export const OverlayTabBar = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={openDashboard}
+            onClick={() => {
+              if (isScreenSharing) {
+                window.dispatchEvent(new CustomEvent("nexus_open_quick_ai_settings"));
+              } else {
+                openDashboard();
+              }
+            }}
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs border-amber-500/50 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 hover:text-amber-400 cursor-pointer animate-pulse"
-            title="AI API Key is missing. Click to open Settings and configure your API key."
+            title={
+              isScreenSharing
+                ? "AI API Key is missing. Click to configure Gemini / GPT key directly on overlay."
+                : "AI API Key is missing. Click to open Settings and configure your API key."
+            }
           >
             <AlertTriangleIcon className="h-3.5 w-3.5 text-amber-500" />
             <span className="font-semibold text-[11px]">API Key Missing</span>
@@ -293,6 +303,7 @@ export const OverlayTabBar = ({
               variant="outline"
               size="sm"
               onClick={openDashboard}
+              disabled={isScreenSharing}
               className="flex items-center gap-2 rounded-full"
             >
               <LayoutDashboardIcon className="h-4 w-4" />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Updater, CustomCursor } from "@/components";
 import { SystemAudio, Completion } from "./components";
-import { useApp } from "@/hooks";
+import { useApp, useScreenSharing } from "@/hooks";
 import { useApp as useAppContext } from "@/contexts";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorLayout } from "@/layouts";
@@ -11,9 +11,11 @@ import { OverlayTabBar } from "./components/OverlayTabBar";
 import { AskMode } from "./components/AskMode";
 import { ListenMode } from "./components/ListenMode";
 import { IntelMode } from "./components/IntelMode";
+import { QuickAiSettingsModal } from "./components/QuickAiSettingsModal";
 
 const App = () => {
   const { isHidden, systemAudio } = useApp();
+  const { setAutoLock } = useScreenSharing();
   const { customizable } = useAppContext();
   const platform = getPlatform();
 
@@ -22,6 +24,29 @@ const App = () => {
     const saved = localStorage.getItem("nexus_app_transparency");
     return saved ? Number(saved) : 95;
   });
+
+  const [isQuickAiModalOpen, setIsQuickAiModalOpen] = useState(false);
+
+  // Option A: Auto-Lock Screen Sharing Protection during active meeting/audio capture
+  useEffect(() => {
+    if (systemAudio.capturing) {
+      void setAutoLock(true);
+    } else {
+      void setAutoLock(false);
+    }
+  }, [systemAudio.capturing, setAutoLock]);
+
+  // Listen for global request to open Gemini & GPT quick settings modal
+  useEffect(() => {
+    const handleOpenQuickSettings = () => {
+      setIsQuickAiModalOpen(true);
+    };
+
+    window.addEventListener("nexus_open_quick_ai_settings", handleOpenQuickSettings);
+    return () => {
+      window.removeEventListener("nexus_open_quick_ai_settings", handleOpenQuickSettings);
+    };
+  }, []);
 
   useEffect(() => {
     const handleTransparencyChange = (e: CustomEvent<number>) => {
@@ -71,6 +96,12 @@ const App = () => {
             {activeTab === "listen" && <ListenMode />}
             {activeTab === "intel" && <IntelMode />}
           </div>
+
+          {/* Quick AI & Model Settings Modal directly on Main Overlay */}
+          <QuickAiSettingsModal
+            open={isQuickAiModalOpen}
+            onOpenChange={setIsQuickAiModalOpen}
+          />
 
           {/* Hidden components that process audio/AI in the background */}
           <div className="hidden">

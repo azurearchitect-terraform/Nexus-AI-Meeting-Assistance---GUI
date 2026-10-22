@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components";
-import { SparklesIcon, ChevronDownIcon, Loader2, CheckIcon } from "lucide-react";
+import { SparklesIcon, ChevronDownIcon, Loader2, CheckIcon, SlidersHorizontalIcon } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 
 interface Model {
@@ -332,6 +332,16 @@ export const ActionToolbar = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[280px] max-h-[300px] overflow-y-auto bg-background">
+                <DropdownMenuItem 
+                  className="cursor-pointer text-xs p-2 rounded-md bg-primary/10 text-primary font-medium hover:bg-primary/20 flex items-center justify-between mb-1"
+                  onClick={() => window.dispatchEvent(new CustomEvent("nexus_open_quick_ai_settings"))}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <SlidersHorizontalIcon className="h-3.5 w-3.5" />
+                    <span>Gemini &amp; GPT Settings...</span>
+                  </div>
+                  <span className="text-[10px] opacity-75 font-mono">Models &amp; Keys</span>
+                </DropdownMenuItem>
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">AI Assistant Model</div>
                 {models.length > 0 ? models.map(model => (
                   <DropdownMenuItem 
@@ -443,6 +453,17 @@ export const ActionToolbar = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[240px] max-h-[320px] overflow-y-auto bg-background">
+                <DropdownMenuItem 
+                  className="cursor-pointer text-xs p-2 rounded-md bg-primary/10 text-primary font-medium hover:bg-primary/20 flex items-center justify-between mb-1"
+                  onClick={() => window.dispatchEvent(new CustomEvent("nexus_open_quick_ai_settings"))}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <SlidersHorizontalIcon className="h-3.5 w-3.5" />
+                    <span>Gemini &amp; GPT Direct...</span>
+                  </div>
+                  <span className="text-[10px] opacity-75 font-mono">Keys &amp; Models</span>
+                </DropdownMenuItem>
+
                 {currentAiModels.length > 0 && (
                   <>
                     <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -493,6 +514,18 @@ export const ActionToolbar = ({
             </DropdownMenu>
           </>
         )}
+
+        {/* Direct Gemini & GPT Quick Settings Trigger */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => window.dispatchEvent(new CustomEvent("nexus_open_quick_ai_settings"))}
+          className="h-7 px-2 rounded-lg border border-border/50 bg-background/60 hover:bg-muted/80 text-xs font-medium flex items-center gap-1 text-foreground/80 hover:text-foreground transition-all cursor-pointer"
+          title="Gemini & GPT Quick Settings (Switch Models & Enter API Keys Directly)"
+        >
+          <SlidersHorizontalIcon className="h-3 w-3 text-primary" />
+          <span className="text-[11px] font-medium hidden sm:inline">AI Config</span>
+        </Button>
 
         <SettingsButton compact={compact} />
       </div>

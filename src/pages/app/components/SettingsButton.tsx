@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SettingsIcon, LockIcon, MonitorUpIcon, ShieldAlertIcon } from "lucide-react";
+import { SettingsIcon, LockIcon, MonitorUpIcon, ShieldAlertIcon, SlidersHorizontalIcon } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components";
 import { useScreenSharing } from "@/hooks";
@@ -9,13 +9,13 @@ interface SettingsButtonProps {
 }
 
 export const SettingsButton = ({ compact = false }: SettingsButtonProps) => {
-  const { isScreenSharing, toggleScreenSharing } = useScreenSharing();
+  const { isScreenSharing, isAutoLocked, toggleScreenSharing } = useScreenSharing();
   const [showWarning, setShowWarning] = useState(false);
 
   const handleOpenSettings = async () => {
     if (isScreenSharing) {
       setShowWarning(true);
-      setTimeout(() => setShowWarning(false), 3000);
+      setTimeout(() => setShowWarning(false), 4500);
       return;
     }
 
@@ -39,12 +39,14 @@ export const SettingsButton = ({ compact = false }: SettingsButtonProps) => {
         }`}
         title={
           isScreenSharing
-            ? "Screen sharing mode is ACTIVE: Settings locked to protect credentials. Click to turn off."
+            ? isAutoLocked
+              ? "Screen sharing protection is AUTO-ENGAGED due to active audio capture. Settings locked. Click to override."
+              : "Screen sharing mode is ACTIVE: Settings locked to protect credentials. Click to turn off."
             : "Click to enable Screen Sharing protection (locks settings and guards against window exposure)."
         }
       >
         <MonitorUpIcon className={`h-3 w-3 ${isScreenSharing ? "text-rose-400 animate-pulse" : "opacity-70"}`} />
-        <span>{isScreenSharing ? "Screen Sharing" : "Normal"}</span>
+        <span>{isScreenSharing ? (isAutoLocked ? "Screen Sharing (Auto)" : "Screen Sharing") : "Normal"}</span>
       </button>
 
       {/* Settings Button */}
@@ -60,7 +62,7 @@ export const SettingsButton = ({ compact = false }: SettingsButtonProps) => {
         }`}
         title={
           isScreenSharing
-            ? "Settings are restricted during screen sharing."
+            ? "Settings window is restricted during screen sharing. Click to see options."
             : "Open Settings & Dashboard"
         }
       >
@@ -74,14 +76,28 @@ export const SettingsButton = ({ compact = false }: SettingsButtonProps) => {
 
       {/* Warning Alert Floating Bubble */}
       {showWarning && (
-        <div className="absolute right-0 bottom-full mb-2 w-64 p-2.5 rounded-xl border border-rose-500/50 bg-background/95 backdrop-blur-md shadow-2xl text-rose-400 text-xs z-[9999] flex items-start gap-2 animate-in fade-in slide-in-from-bottom-2">
-          <ShieldAlertIcon className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
-          <div className="space-y-0.5">
-            <p className="font-bold text-rose-400 text-[11px] leading-tight">Settings Restricted</p>
-            <p className="text-muted-foreground text-[10px] leading-snug">
-              Settings and Dashboard are restricted while screen sharing is active to prevent leaking private credentials and window exposure.
-            </p>
+        <div className="absolute right-0 bottom-full mb-2 w-68 p-3 rounded-xl border border-rose-500/50 bg-background/95 backdrop-blur-xl shadow-2xl text-rose-400 text-xs z-[9999] flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-start gap-2">
+            <ShieldAlertIcon className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-bold text-rose-400 text-[11px] leading-tight">Settings Window Restricted</p>
+              <p className="text-muted-foreground text-[10px] leading-snug">
+                Full Settings &amp; Dashboard are restricted during active screen sharing to prevent credential leakage.
+              </p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowWarning(false);
+              window.dispatchEvent(new CustomEvent("nexus_open_quick_ai_settings"));
+            }}
+            className="w-full py-1.5 px-2.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[11px] font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <SlidersHorizontalIcon className="h-3 w-3" />
+            <span>Configure Gemini &amp; GPT on Overlay</span>
+          </button>
         </div>
       )}
     </div>
