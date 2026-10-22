@@ -8,7 +8,7 @@ import {
 } from "@/components";
 import { ActionToolbar } from "./ActionToolbar";
 import { InterviewContextModal } from "./InterviewContextModal";
-import { useApp as useAppHook } from "@/hooks";
+import { useApp as useAppHook, useScreenSharing } from "@/hooks";
 import { useApp as useGlobalApp } from "@/contexts";
 import { fetchAIResponse } from "@/lib/functions";
 import { invoke } from "@tauri-apps/api/core";
@@ -63,6 +63,7 @@ export const ListenMode = () => {
   const answerScrollRef = useRef<HTMLDivElement>(null);
 
   const { systemAudio } = useAppHook();
+  const { isScreenSharing } = useScreenSharing();
   const {
     capturing,
     isSpeechActive,
@@ -537,11 +538,17 @@ ${messagesContent}`;
           <Button
             size="sm"
             variant="outline"
-            className="h-6 px-2.5 text-[10px] font-bold border-amber-500/40 text-amber-500 hover:bg-amber-500 hover:text-black rounded-full shrink-0 cursor-pointer"
-            onClick={() => invoke("open_dashboard")}
+            disabled={isScreenSharing}
+            className={`h-6 px-2.5 text-[10px] font-bold border-amber-500/40 text-amber-500 rounded-full shrink-0 ${isScreenSharing ? "opacity-50 cursor-not-allowed" : "hover:bg-amber-500 hover:text-black cursor-pointer"}`}
+            onClick={() => {
+              if (!isScreenSharing) {
+                invoke("open_dashboard");
+              }
+            }}
+            title={isScreenSharing ? "Settings restricted during screen sharing" : "Open Settings"}
           >
             <SettingsIcon className="h-3 w-3 mr-1" />
-            Open Settings
+            {isScreenSharing ? "Settings Locked" : "Open Settings"}
           </Button>
         </div>
       )}
@@ -697,11 +704,17 @@ ${messagesContent}`;
               </div>
               <Button 
                 size="sm" 
-                className="bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs rounded-full px-4 shadow-md cursor-pointer"
-                onClick={() => invoke("open_dashboard")}
+                disabled={isScreenSharing}
+                className={`font-semibold text-xs rounded-full px-4 shadow-md ${isScreenSharing ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed" : "bg-amber-500 hover:bg-amber-600 text-black cursor-pointer"}`}
+                onClick={() => {
+                  if (!isScreenSharing) {
+                    invoke("open_dashboard");
+                  }
+                }}
+                title={isScreenSharing ? "Settings restricted during screen sharing" : "Open Settings"}
               >
                 <SettingsIcon className="h-3.5 w-3.5 mr-1.5" />
-                Open Settings & Add API Key
+                {isScreenSharing ? "Settings Restricted (Screen Sharing Active)" : "Open Settings & Add API Key"}
               </Button>
             </div>
           )}

@@ -5,7 +5,6 @@ import {
   HeadphonesIcon,
   LayoutDashboardIcon,
   HistoryIcon,
-  SettingsIcon,
   GripIcon,
   SlidersHorizontalIcon,
   PlusIcon,
@@ -16,7 +15,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Popover, PopoverTrigger, PopoverContent, Slider } from "@/components";
 import { useApp } from "@/contexts";
-import { useApp as useAppHook } from "@/hooks";
+import { useApp as useAppHook, useScreenSharing } from "@/hooks";
 import { MiniSoundWave } from "./speech/ListeningAnimation";
 import { getAllPersistedProviderKeys, getPersistedProviderKey } from "@/lib/storage/provider-keys";
 
@@ -31,6 +30,7 @@ export const OverlayTabBar = ({
 }: OverlayTabBarProps) => {
   const { selectedAIProvider } = useApp();
   const { systemAudio } = useAppHook();
+  const { isScreenSharing } = useScreenSharing();
   const { capturing, isSpeechActive, isProcessing, isAIProcessing } = systemAudio;
   const bank = getAllPersistedProviderKeys();
   const isAuto = selectedAIProvider?.provider === "auto";
@@ -53,6 +53,22 @@ export const OverlayTabBar = ({
     const saved = localStorage.getItem("nexus_app_transparency");
     return saved ? Number(saved) : 95;
   });
+
+  const [showDashboardButton, setShowDashboardButton] = useState<boolean>(() => {
+    return localStorage.getItem("nexus_show_dashboard_button") === "true";
+  });
+  const [showHistoryButton, setShowHistoryButton] = useState<boolean>(() => {
+    return localStorage.getItem("nexus_show_history_button") === "true";
+  });
+
+  useEffect(() => {
+    const handleTopBarChange = () => {
+      setShowDashboardButton(localStorage.getItem("nexus_show_dashboard_button") === "true");
+      setShowHistoryButton(localStorage.getItem("nexus_show_history_button") === "true");
+    };
+    window.addEventListener("nexus_topbar_buttons_changed", handleTopBarChange);
+    return () => window.removeEventListener("nexus_topbar_buttons_changed", handleTopBarChange);
+  }, []);
 
   useEffect(() => {
     const handleTransparencyChange = (e: CustomEvent<number>) => {
@@ -88,6 +104,10 @@ export const OverlayTabBar = ({
   };
 
   const openDashboard = async () => {
+    if (isScreenSharing) {
+      console.warn("Dashboard opening restricted during screen sharing");
+      return;
+    }
     try {
       await invoke("open_dashboard");
     } catch (error) {
@@ -267,35 +287,33 @@ export const OverlayTabBar = ({
           </Button>
         )}
 
-        <div className="flex items-center gap-2 border-l border-border/50 pl-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openDashboard}
-            className="flex items-center gap-2 rounded-full"
-          >
-            <LayoutDashboardIcon className="h-4 w-4" />
-            Dashboard
-          </Button>
-        </div>
+        {showDashboardButton && (
+          <div className="flex items-center gap-2 border-l border-border/50 pl-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openDashboard}
+              className="flex items-center gap-2 rounded-full"
+            >
+              <LayoutDashboardIcon className="h-4 w-4" />
+              Dashboard
+            </Button>
+          </div>
+        )}
 
         <div className="flex items-center gap-1 border-l border-border/50 pl-3">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 rounded-full"
-            onClick={openDashboard}
-          >
-            <HistoryIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-full"
-            onClick={openDashboard}
-          >
-            <SettingsIcon className="h-4 w-4" />
-          </Button>
+          {showHistoryButton && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full"
+              onClick={openDashboard}
+              disabled={isScreenSharing}
+              title={isScreenSharing ? "History restricted during screen sharing" : "History"}
+            >
+              <HistoryIcon className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full cursor-grab active:cursor-grabbing" data-tauri-drag-region="true">
             <GripIcon className="h-4 w-4 pointer-events-none" data-tauri-drag-region="true" />
           </Button>

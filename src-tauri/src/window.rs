@@ -1,6 +1,12 @@
 #[cfg(target_os = "macos")]
 use tauri::LogicalPosition;
-use tauri::{App, AppHandle, Manager, Runtime, WebviewWindow, WebviewWindowBuilder};
+use std::sync::atomic::{AtomicBool, Ordering};
+use tauri::{App, AppHandle, Emitter, Manager, Runtime, WebviewWindow, WebviewWindowBuilder};
+
+#[derive(Default)]
+pub struct ScreenSharingState {
+    pub is_active: AtomicBool,
+}
 
 // The offset from the top of the screen to the window
 const TOP_OFFSET: i32 = 54;
@@ -85,11 +91,21 @@ pub fn set_window_height(window: tauri::WebviewWindow, height: u32) -> Result<()
 
 #[tauri::command]
 pub fn open_dashboard(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(state) = app.try_state::<ScreenSharingState>() {
+        if state.is_active.load(Ordering::SeqCst) {
+            return Err("Settings and Dashboard are restricted while screen sharing is active to protect sensitive information.".to_string());
+        }
+    }
     show_dashboard_window(&app)
 }
 
 #[tauri::command]
 pub fn toggle_dashboard(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(state) = app.try_state::<ScreenSharingState>() {
+        if state.is_active.load(Ordering::SeqCst) {
+            return Err("Settings and Dashboard are restricted while screen sharing is active to protect sensitive information.".to_string());
+        }
+    }
     if let Some(dashboard_window) = app.get_webview_window("dashboard") {
         match dashboard_window.is_visible() {
             Ok(true) => {
@@ -117,6 +133,30 @@ pub fn toggle_dashboard(app: tauri::AppHandle) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn set_screensharing_status(app: tauri::AppHandle, active: bool) -> Result<(), String> {
+    if let Some(state) = app.try_state::<ScreenSharingState>() {
+        state.is_active.store(active, Ordering::SeqCst);
+    }
+    if active {
+        // Immediately hide dashboard if it is currently visible
+        if let Some(dashboard_window) = app.get_webview_window("dashboard") {
+            let _ = dashboard_window.hide();
+        }
+    }
+    let _ = app.emit("screensharing-status-changed", active);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_screensharing_status(app: tauri::AppHandle) -> Result<bool, String> {
+    if let Some(state) = app.try_state::<ScreenSharingState>() {
+        Ok(state.is_active.load(Ordering::SeqCst))
+    } else {
+        Ok(false)
+    }
 }
 
 #[tauri::command]

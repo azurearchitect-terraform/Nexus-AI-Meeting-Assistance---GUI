@@ -586,6 +586,12 @@ pub fn set_always_on_top<R: Runtime>(app: AppHandle<R>, enabled: bool) -> Result
 
 /// Handle toggle dashboard shortcut
 fn handle_toggle_dashboard<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(state) = app.try_state::<crate::window::ScreenSharingState>() {
+        if state.is_active.load(std::sync::atomic::Ordering::SeqCst) {
+            eprintln!("Ignoring toggle_dashboard shortcut - screen sharing active");
+            return;
+        }
+    }
     if let Some(dashboard_window) = app.get_webview_window("dashboard") {
         match dashboard_window.is_visible() {
             Ok(true) => {

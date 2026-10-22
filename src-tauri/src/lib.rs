@@ -52,6 +52,7 @@ pub fn run() {
         .manage(shortcuts::RegisteredShortcuts::default())
         .manage(shortcuts::LicenseState::default())
         .manage(shortcuts::MoveWindowState::default())
+        .manage(window::ScreenSharingState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_keychain::init())
@@ -81,6 +82,8 @@ pub fn run() {
             get_app_version,
             window::set_window_height,
             window::open_dashboard,
+            window::set_screensharing_status,
+            window::get_screensharing_status,
             window::toggle_dashboard,
             window::move_window,
             capture::capture_to_base64,

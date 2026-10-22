@@ -4,6 +4,7 @@ import {
   AppIconToggle,
   AutostartToggle,
   CustomPersonas,
+  TopBarVisibilityToggle,
 } from "./components";
 import { PageLayout } from "@/layouts";
 
@@ -12,6 +13,9 @@ const Settings = () => {
     <PageLayout title="Settings" description="Manage your settings">
       {/* Theme */}
       <Theme />
+
+      {/* Top Bar Navigation Controls */}
+      <TopBarVisibilityToggle />
 
       {/* Autostart Toggle */}
       <AutostartToggle />

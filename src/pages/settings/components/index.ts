@@ -4,3 +4,4 @@ export * from "./AutostartToggle";
 export * from "./Theme";
 export * from "./DeleteChats";
 export * from "./CustomPersonas";
+export * from "./TopBarVisibilityToggle";

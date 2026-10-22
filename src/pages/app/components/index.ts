@@ -9,3 +9,4 @@ export * from "./speech/audio-visualizer";
 export * from "./speech/StatusIndicator";
 export * from "./ApiStatusIndicator";
 export * from "./InterviewContextModal";
+export * from "./SettingsButton";

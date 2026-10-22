@@ -71,6 +71,10 @@ pub async fn start_screen_capture(app: tauri::AppHandle) -> Result<(), String> {
         let _ = close_overlay_window(app.clone());
     }
     state.overlay_active.store(true, Ordering::SeqCst);
+    if let Some(ss_state) = app.try_state::<crate::window::ScreenSharingState>() {
+        ss_state.is_active.store(true, Ordering::SeqCst);
+        let _ = app.emit("screensharing-status-changed", true);
+    }
     let mut captured_monitors = HashMap::new();
 
     // Capture all monitors and store their info
@@ -195,9 +199,7 @@ pub fn close_overlay_window(app: tauri::AppHandle) -> Result<(), String> {
     state.overlay_active.store(false, Ordering::SeqCst);
 
     // Emit an event to the main window to signal that the overlay has been closed
-    // and show the main window in the taskbar again
     if let Some(main_window) = app.get_webview_window("main") {
-        main_window.set_skip_taskbar(false).ok();
         main_window.emit("capture-closed", ()).unwrap();
     }
 

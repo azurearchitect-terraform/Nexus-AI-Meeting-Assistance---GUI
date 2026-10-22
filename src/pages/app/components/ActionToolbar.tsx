@@ -128,6 +128,7 @@ const DEFAULT_MODELS: Model[] = [
 
 import { useApp } from "@/contexts";
 import { ApiStatusIndicator } from "./ApiStatusIndicator";
+import { SettingsButton } from "./SettingsButton";
 const getCompactName = (name: string, maxLen = 15): string => {
   if (!name) return "";
   const cleaned = name
@@ -492,6 +493,8 @@ export const ActionToolbar = ({
             </DropdownMenu>
           </>
         )}
+
+        <SettingsButton compact={compact} />
       </div>
     </div>
   );

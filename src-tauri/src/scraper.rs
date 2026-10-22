@@ -84,6 +84,35 @@ fn normalized_host(url: &Url) -> Result<String, String> {
     Ok(host.trim_start_matches("www.").to_ascii_lowercase())
 }
 
+pub fn is_same_company_host(host: &str, expected_host: &str) -> bool {
+    let h = host.trim_start_matches("www.").to_ascii_lowercase();
+    let b = expected_host.trim_start_matches("www.").to_ascii_lowercase();
+    if h == b {
+        return true;
+    }
+    if h.ends_with(&format!(".{b}")) || b.ends_with(&format!(".{h}")) {
+        return true;
+    }
+    // Check if they share the same base domain e.g. about.example.com and careers.example.com
+    let h_parts: Vec<&str> = h.split('.').collect();
+    let b_parts: Vec<&str> = b.split('.').collect();
+    if h_parts.len() >= 2 && b_parts.len() >= 2 {
+        let h_tail = format!("{}.{}", h_parts[h_parts.len() - 2], h_parts[h_parts.len() - 1]);
+        let b_tail = format!("{}.{}", b_parts[b_parts.len() - 2], b_parts[b_parts.len() - 1]);
+        if h_tail == b_tail {
+            let generic_second_level = ["co", "com", "org", "net", "gov", "edu", "ac"];
+            if generic_second_level.contains(&h_parts[h_parts.len() - 2]) {
+                if h_parts.len() >= 3 && b_parts.len() >= 3 {
+                    return h_parts[h_parts.len() - 3] == b_parts[b_parts.len() - 3];
+                }
+            } else {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn is_public_ip(ip: IpAddr) -> bool {
     match ip {
         IpAddr::V4(ip) => {
@@ -111,15 +140,18 @@ fn is_public_ip(ip: IpAddr) -> bool {
     }
 }
 
-async fn validate_public_url(url: &Url, expected_host: &str) -> Result<(), String> {
+async fn validate_public_url(url: &Url, expected_host: Option<&str>) -> Result<(), String> {
     if !matches!(url.scheme(), "http" | "https") {
         return Err("only HTTP and HTTPS URLs are supported".into());
     }
     if !url.username().is_empty() || url.password().is_some() {
         return Err("URLs containing credentials are not allowed".into());
     }
-    if normalized_host(url)? != expected_host {
-        return Err("redirect or link left the requested company host".into());
+    if let Some(expected) = expected_host {
+        let host = normalized_host(url)?;
+        if !is_same_company_host(&host, expected) {
+            return Err("redirect or link left the requested company host".into());
+        }
     }
 
     let host = url.host_str().ok_or("URL must include a host")?;
@@ -134,7 +166,7 @@ async fn validate_public_url(url: &Url, expected_host: &str) -> Result<(), Strin
     Ok(())
 }
 
-async fn fetch_html(client: &Client, initial_url: Url, expected_host: &str) -> Result<(Url, String), String> {
+async fn fetch_html(client: &Client, initial_url: Url, expected_host: Option<&str>) -> Result<(Url, String), String> {
     let mut url = initial_url;
     for redirect_count in 0..=MAX_REDIRECTS {
         validate_public_url(&url, expected_host).await?;
@@ -212,10 +244,21 @@ fn clean_html(html: &str) -> String {
 }
 
 pub async fn scrape_company_website(url_str: &str) -> Result<ScrapeResult, String> {
+    let mut default_headers = reqwest::header::HeaderMap::new();
+    default_headers.insert(
+        reqwest::header::ACCEPT,
+        reqwest::header::HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"),
+    );
+    default_headers.insert(
+        reqwest::header::ACCEPT_LANGUAGE,
+        reqwest::header::HeaderValue::from_static("en-US,en;q=0.9"),
+    );
+
     let client = Client::builder()
-        .timeout(Duration::from_secs(8))
+        .timeout(Duration::from_secs(10))
+        .default_headers(default_headers)
         .redirect(Policy::none())
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -225,16 +268,17 @@ pub async fn scrape_company_website(url_str: &str) -> Result<ScrapeResult, Strin
     }
 
     let parsed_url = Url::parse(&url_to_parse).map_err(|e| format!("Invalid URL: {e}"))?;
-    let base_host = normalized_host(&parsed_url)?;
 
-    // 1. Fetch main page HTML
-    let (main_url, main_html) = fetch_html(&client, parsed_url, &base_host).await?;
+    // 1. Fetch main page HTML (allows initial landing redirect e.g. zoom.us -> zoom.com, http -> https)
+    let (main_url, main_html) = fetch_html(&client, parsed_url, None).await?;
+
+    let canonical_host = normalized_host(&main_url)?;
 
     let main_text = clean_html(&main_html);
     let mut meaningful_pages = usize::from(looks_meaningful(&main_text));
     let mut crawled_texts = vec![format!(
         "=== Main Page ({}) ===\n{}",
-        url_str,
+        main_url.as_str(),
         truncate_chars(&main_text, MAX_CHARS_PER_PAGE)
     )];
 
@@ -248,7 +292,8 @@ pub async fn scrape_company_website(url_str: &str) -> Result<ScrapeResult, Strin
         let path = &cap[1];
 
         let Ok(resolved_url) = main_url.join(path) else { continue };
-        if !normalized_host(&resolved_url).is_ok_and(|host| host == base_host) {
+        let Ok(candidate_host) = normalized_host(&resolved_url) else { continue };
+        if !is_same_company_host(&candidate_host, &canonical_host) {
             continue;
         }
         if resolved_url.path() == "/" || resolved_url.path().is_empty() {
@@ -271,9 +316,9 @@ pub async fn scrape_company_website(url_str: &str) -> Result<ScrapeResult, Strin
 
     candidates.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
 
-    // 3. Fetch the highest-value subpages
+    // 3. Fetch the highest-value subpages (enforcing canonical company host)
     for (_, _, sub_url) in candidates.into_iter().take(MAX_SUBPAGES) {
-        match fetch_html(&client, sub_url.clone(), &base_host).await {
+        match fetch_html(&client, sub_url.clone(), Some(&canonical_host)).await {
             Ok((final_url, html)) => {
                 let cleaned = clean_html(&html);
                 if looks_meaningful(&cleaned) {
@@ -304,7 +349,7 @@ pub async fn scrape_company_website(url_str: &str) -> Result<ScrapeResult, Strin
         text: crawled_texts.join("\n"),
         quality,
         pages_crawled,
-        host: base_host,
+        host: canonical_host,
     })
 }
 
@@ -315,7 +360,7 @@ pub async fn scrape_company(payload: String) -> Result<ScrapeResult, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_public_ip, looks_meaningful, normalized_host, truncate_chars, PAGE_PRIORITIES};
+    use super::{is_public_ip, is_same_company_host, looks_meaningful, normalized_host, truncate_chars, PAGE_PRIORITIES};
     use reqwest::Url;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -392,15 +437,15 @@ mod tests {
         let javascript = Url::parse("javascript:alert(1)").unwrap();
 
         assert_eq!(
-            super::validate_public_url(&ftp, expected_host).await.unwrap_err(),
+            super::validate_public_url(&ftp, Some(expected_host)).await.unwrap_err(),
             "only HTTP and HTTPS URLs are supported"
         );
         assert_eq!(
-            super::validate_public_url(&file, expected_host).await.unwrap_err(),
+            super::validate_public_url(&file, Some(expected_host)).await.unwrap_err(),
             "only HTTP and HTTPS URLs are supported"
         );
         assert_eq!(
-            super::validate_public_url(&javascript, expected_host).await.unwrap_err(),
+            super::validate_public_url(&javascript, Some(expected_host)).await.unwrap_err(),
             "only HTTP and HTTPS URLs are supported"
         );
     }
@@ -412,11 +457,11 @@ mod tests {
         let with_pass = Url::parse("https://admin:secret@example.com").unwrap();
 
         assert_eq!(
-            super::validate_public_url(&with_user, expected_host).await.unwrap_err(),
+            super::validate_public_url(&with_user, Some(expected_host)).await.unwrap_err(),
             "URLs containing credentials are not allowed"
         );
         assert_eq!(
-            super::validate_public_url(&with_pass, expected_host).await.unwrap_err(),
+            super::validate_public_url(&with_pass, Some(expected_host)).await.unwrap_err(),
             "URLs containing credentials are not allowed"
         );
     }
@@ -425,15 +470,26 @@ mod tests {
     async fn preserves_host_boundaries_across_redirects() {
         let expected_host = "example.com";
         let diff_domain = Url::parse("https://attacker.com/about").unwrap();
-        let diff_subdomain = Url::parse("https://api.example.com/about").unwrap();
+        let not_same_domain = Url::parse("https://notexample.com/about").unwrap();
 
         assert_eq!(
-            super::validate_public_url(&diff_domain, expected_host).await.unwrap_err(),
+            super::validate_public_url(&diff_domain, Some(expected_host)).await.unwrap_err(),
             "redirect or link left the requested company host"
         );
         assert_eq!(
-            super::validate_public_url(&diff_subdomain, expected_host).await.unwrap_err(),
+            super::validate_public_url(&not_same_domain, Some(expected_host)).await.unwrap_err(),
             "redirect or link left the requested company host"
         );
+    }
+
+    #[test]
+    fn allows_same_company_subdomains() {
+        assert!(is_same_company_host("careers.example.com", "example.com"));
+        assert!(is_same_company_host("about.example.com", "example.com"));
+        assert!(is_same_company_host("www.example.com", "example.com"));
+        assert!(is_same_company_host("example.com", "careers.example.com"));
+        assert!(is_same_company_host("about.example.com", "careers.example.com"));
+        assert!(!is_same_company_host("attacker.com", "example.com"));
+        assert!(!is_same_company_host("notexample.com", "example.com"));
     }
 }

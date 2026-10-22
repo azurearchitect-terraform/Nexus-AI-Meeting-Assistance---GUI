@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components";
+import { SettingsButton } from "./SettingsButton";
 import {
   CompanyIntel,
   InterviewRound,
@@ -393,6 +394,11 @@ export const IntelMode = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Bottom Dock with Settings */}
+      <div className="flex items-center justify-end px-3 py-1.5 border-t border-border/40 bg-background/60 shrink-0">
+        <SettingsButton compact />
       </div>
     </div>
   );
