@@ -177,8 +177,8 @@ export function useSystemAudio() {
     selectedAudioDevices,
   } = useApp();
   const abortControllerRef = useRef<AbortController | null>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const speechDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speechDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRef = useRef<boolean>(false);
   const isAIProcessingRef = useRef<boolean>(false);
   const lastProcessedTranscriptionRef = useRef<string>("");

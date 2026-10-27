@@ -24,7 +24,6 @@ const AutoSpeechVADInternal = ({
   submit,
   setState,
   setEnableVAD,
-  microphoneDeviceId,
 }: AutoSpeechVADProps) => {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const { selectedSttProvider, allSttProviders } = useApp();
@@ -87,15 +86,9 @@ const AutoSpeechVADInternal = ({
     };
   }, []);
 
-  const audioConstraints: MediaTrackConstraints =
-    microphoneDeviceId && microphoneDeviceId !== "default"
-      ? { deviceId: { exact: microphoneDeviceId } }
-      : {};
-
   const vad = useMicVAD({
     userSpeakingThreshold: 0.6,
     startOnLoad: true,
-    additionalAudioConstraints: audioConstraints,
     onSpeechEnd: async (audio) => {
       activeTranscriptionsRef.current += 1;
       if (submitTimerRef.current) {
