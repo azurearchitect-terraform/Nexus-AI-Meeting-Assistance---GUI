@@ -133,7 +133,7 @@ export type JdInterviewQuestion = z.infer<typeof JdInterviewQuestion>;
  * `ScrapeQuality` enum. The prompt uses it to decide whether the model is
  * allowed to describe the company at all, rather than inventing a profile.
  */
-export const ScrapeQuality = z.enum(["rich", "thin", "failed"]);
+export const ScrapeQuality = z.enum(["rich", "thin", "failed", "ai_generated"]);
 export type ScrapeQuality = z.infer<typeof ScrapeQuality>;
 
 export const ScrapeResult = z.object({

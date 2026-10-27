@@ -518,6 +518,8 @@ const CompanyPrep = () => {
                   <p className="text-xs text-amber-500 leading-relaxed font-medium">
                     {intel.sourceQuality === "failed"
                       ? "No readable content could be recovered from this site — it may be JavaScript-heavy or blocked automated requests. Company facts were strictly left blank rather than invented. Questions below are grounded in your role and JD."
+                      : intel.sourceQuality === "ai_generated"
+                      ? "Website could not be crawled (JavaScript-heavy or blocked). Company details below were generated from general AI knowledge — verify accuracy before your interview."
                       : "Only limited content was recovered. Company fields without direct evidence were left blank. Adding a job description above will strengthen the profile."}
                   </p>
                 </div>

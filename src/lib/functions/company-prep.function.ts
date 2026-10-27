@@ -6,6 +6,7 @@ import {
   ScrapeResult,
   normalizeCandidateQuestions,
   companyIntelPrompt,
+  aiCompanyIntelPrompt,
   CandidateProfile,
 } from "../company-intel";
 import { fetchAIResponse } from "./ai-response.function";
@@ -157,10 +158,7 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
     throw new Error("Analysis aborted by user");
   }
 
-  onProgress?.(
-    `Crawl completed (${scrape.quality.toUpperCase()}, ${scrape.pages_crawled} page(s)). Synthesizing grounded company intel...`
-  );
-
+  // Resolve provider and selectedProvider before any AI call
   let resolvedSelectedProvider = selectedProvider;
   if (!resolvedSelectedProvider || !resolvedSelectedProvider.provider) {
     try {
@@ -182,20 +180,75 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
     resolvedProvider = AI_PROVIDERS.find((p) => p.id === providerId) || AI_PROVIDERS[0];
   }
 
-  const { system, user } = companyIntelPrompt(scrape.text, jdText ?? null, profile, scrape.quality);
+  // Determine whether we have usable website content or need AI general-knowledge fallback
+  const hasUsableContent = scrape.quality !== "failed" && scrape.text.trim().length > 200;
 
-  const stream = fetchAIResponse({
-    provider: resolvedProvider,
-    selectedProvider: resolvedSelectedProvider,
-    systemPrompt: system,
-    userMessage: user,
-    signal,
-  });
+  let raw: string;
+  let sourceQuality: "rich" | "thin" | "failed" | "ai_generated";
 
-  let raw = "";
-  for await (const chunk of stream) {
-    if (signal?.aborted) throw new Error("Analysis aborted by user");
-    raw += chunk;
+  if (hasUsableContent) {
+    onProgress?.(
+      `Crawl completed (${scrape.quality.toUpperCase()}, ${scrape.pages_crawled} page(s)). Synthesizing grounded company intel...`
+    );
+    sourceQuality = scrape.quality;
+
+    const { system, user } = companyIntelPrompt(scrape.text, jdText ?? null, profile, scrape.quality);
+
+    const stream = fetchAIResponse({
+      provider: resolvedProvider,
+      selectedProvider: resolvedSelectedProvider,
+      systemPrompt: system,
+      userMessage: user,
+      signal,
+    });
+
+    raw = "";
+    for await (const chunk of stream) {
+      if (signal?.aborted) throw new Error("Analysis aborted by user");
+      raw += chunk;
+    }
+  } else {
+    // Scrape failed or returned no usable content — use AI general knowledge fallback
+    onProgress?.(
+      "Website could not be crawled. Generating company intelligence from general knowledge..."
+    );
+
+    // Extract domain and company name from URL
+    let domain = "";
+    let companyName = "";
+    try {
+      const urlObj = new URL(url);
+      domain = urlObj.hostname.replace(/^www\./, "");
+      // Derive company name from domain: e.g. "stripe.com" -> "Stripe"
+      companyName = domain
+        .split(".")
+        .slice(0, -1)
+        .join(".")
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+    } catch {
+      domain = url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+      companyName = domain;
+    }
+
+    sourceQuality = "ai_generated";
+
+    const { system, user } = aiCompanyIntelPrompt(companyName, domain, jdText ?? null, profile);
+
+    const stream = fetchAIResponse({
+      provider: resolvedProvider,
+      selectedProvider: resolvedSelectedProvider,
+      systemPrompt: system,
+      userMessage: user,
+      signal,
+    });
+
+    raw = "";
+    for await (const chunk of stream) {
+      if (signal?.aborted) throw new Error("Analysis aborted by user");
+      raw += chunk;
+    }
   }
 
   if (!raw.trim()) {
@@ -206,7 +259,7 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
     throw new Error(raw.replace(/^⚠️\s*/, "").trim());
   }
 
-  onProgress?.("Validating grounded intelligence schema...");
+  onProgress?.("Validating intelligence schema...");
   const parsed = parseCompanyIntelJson(raw);
   if (!parsed || typeof parsed !== "object") {
     throw new Error("AI returned invalid JSON for company intelligence profile");
@@ -215,7 +268,7 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
   const parsedObj = (parsed && typeof parsed === "object") ? (parsed as Record<string, any>) : {};
   const validation = CompanyIntel.safeParse({
     ...parsedObj,
-    sourceQuality: scrape.quality,
+    sourceQuality,
   });
 
   let intel: CompanyIntel;
@@ -236,7 +289,7 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
       jdInterviewQuestions: [],
       hrQuestions: [],
       salaryNegotiationStrategy: typeof p.salaryNegotiationStrategy === "string" && p.salaryNegotiationStrategy.trim() ? p.salaryNegotiationStrategy.trim() : null,
-      sourceQuality: scrape.quality,
+      sourceQuality,
     };
 
     if (Array.isArray(p.questions)) {
