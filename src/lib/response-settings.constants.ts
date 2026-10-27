@@ -19,14 +19,14 @@ export const RESPONSE_LENGTHS: ResponseLengthOption[] = [
     description:
       "Best for quick answers, summaries, and when you need to save time",
     prompt:
-      "IMPORTANT: Format your response strictly as 2-3 concise, line-by-line bullet points for real-time speed. Line 1: Direct answer. Lines 2-3: Key points. Never write long paragraphs. This is a strict requirement.",
+      "IMPORTANT: Format your response line-by-line for real-time speed. Start with a direct answer on Line 1, followed by 2-3 concise lines with key points. Keep it brief but complete. Never write long unbroken paragraphs.",
   },
   {
     id: "medium",
     title: "Medium",
     description: "Balanced responses with adequate explanations for most tasks",
     prompt:
-      "IMPORTANT: Format your response line-by-line. Start with a direct 1-sentence answer, followed by 3-4 concise bullet points with relevant technical details, architecture decisions, and trade-offs. Avoid continuous narrative paragraphs.",
+      "IMPORTANT: Format your response line-by-line. Start with a direct answer on Line 1, followed by 4-6 concise lines with relevant technical details, architecture decisions, and trade-offs. Each line should be a complete thought or sentence. Avoid continuous narrative paragraphs.",
   },
   {
     id: "auto",
@@ -34,7 +34,7 @@ export const RESPONSE_LENGTHS: ResponseLengthOption[] = [
     description:
       "AI determines the best length based on your question's complexity",
     prompt:
-      "IMPORTANT: Always deliver answers formatted line-by-line for real-time readability. Start with the direct answer on Line 1, followed by clean, concise bullet points tailored to the complexity of the question. Never write long unbroken paragraph blocks.",
+      "IMPORTANT: Always deliver answers formatted line-by-line for real-time readability. Start with the direct answer on Line 1, followed by clean, concise lines tailored to the complexity of the question. For scenario-based or complex questions, provide enough detail to fully answer—do not be too brief. Never write long unbroken paragraph blocks.",
   },
 ];
 
