@@ -1,11 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
 import {
   CompanyIntel,
   IntelQuestion,
   JdInterviewQuestion,
-  ScrapeResult,
   normalizeCandidateQuestions,
-  companyIntelPrompt,
   aiCompanyIntelPrompt,
   CandidateProfile,
 } from "../company-intel";
@@ -145,20 +142,34 @@ export interface AnalyzeCompanyParams {
 export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<CompanyIntel> {
   const { url, jdText = null, profile, provider, selectedProvider, onProgress, signal } = params;
 
-  onProgress?.("Connecting to website and crawling pages safely...");
-  let scrape: ScrapeResult;
-  try {
-    scrape = await invoke<ScrapeResult>("scrape_company", { payload: url });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to crawl company website: ${message}`);
-  }
-
   if (signal?.aborted) {
     throw new Error("Analysis aborted by user");
   }
 
-  // Resolve provider and selectedProvider before any AI call
+  // Extract domain and company name from URL
+  let domain = "";
+  let companyName = "";
+  try {
+    const urlObj = new URL(url);
+    domain = urlObj.hostname.replace(/^www\./, "");
+    companyName = domain
+      .split(".")
+      .slice(0, -1)
+      .join(".")
+      .split("-")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  } catch {
+    domain = url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+    companyName = domain;
+  }
+
+  // Skip website crawling entirely — go straight to AI with company name/domain.
+  // Corporate sites are often JavaScript-heavy or block automated requests,
+  // so scraping reliably fails. AI general knowledge is more dependable here.
+  onProgress?.("Generating company intelligence from AI knowledge...");
+
+  // Resolve provider and selectedProvider
   let resolvedSelectedProvider = selectedProvider;
   if (!resolvedSelectedProvider || !resolvedSelectedProvider.provider) {
     try {
@@ -180,75 +191,20 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
     resolvedProvider = AI_PROVIDERS.find((p) => p.id === providerId) || AI_PROVIDERS[0];
   }
 
-  // Determine whether we have usable website content or need AI general-knowledge fallback
-  const hasUsableContent = scrape.quality !== "failed" && scrape.text.trim().length > 200;
+  const { system, user } = aiCompanyIntelPrompt(companyName, domain, jdText ?? null, profile);
 
-  let raw: string;
-  let sourceQuality: "rich" | "thin" | "failed" | "ai_generated";
+  const stream = fetchAIResponse({
+    provider: resolvedProvider,
+    selectedProvider: resolvedSelectedProvider,
+    systemPrompt: system,
+    userMessage: user,
+    signal,
+  });
 
-  if (hasUsableContent) {
-    onProgress?.(
-      `Crawl completed (${scrape.quality.toUpperCase()}, ${scrape.pages_crawled} page(s)). Synthesizing grounded company intel...`
-    );
-    sourceQuality = scrape.quality;
-
-    const { system, user } = companyIntelPrompt(scrape.text, jdText ?? null, profile, scrape.quality);
-
-    const stream = fetchAIResponse({
-      provider: resolvedProvider,
-      selectedProvider: resolvedSelectedProvider,
-      systemPrompt: system,
-      userMessage: user,
-      signal,
-    });
-
-    raw = "";
-    for await (const chunk of stream) {
-      if (signal?.aborted) throw new Error("Analysis aborted by user");
-      raw += chunk;
-    }
-  } else {
-    // Scrape failed or returned no usable content — use AI general knowledge fallback
-    onProgress?.(
-      "Website could not be crawled. Generating company intelligence from general knowledge..."
-    );
-
-    // Extract domain and company name from URL
-    let domain = "";
-    let companyName = "";
-    try {
-      const urlObj = new URL(url);
-      domain = urlObj.hostname.replace(/^www\./, "");
-      // Derive company name from domain: e.g. "stripe.com" -> "Stripe"
-      companyName = domain
-        .split(".")
-        .slice(0, -1)
-        .join(".")
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
-    } catch {
-      domain = url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-      companyName = domain;
-    }
-
-    sourceQuality = "ai_generated";
-
-    const { system, user } = aiCompanyIntelPrompt(companyName, domain, jdText ?? null, profile);
-
-    const stream = fetchAIResponse({
-      provider: resolvedProvider,
-      selectedProvider: resolvedSelectedProvider,
-      systemPrompt: system,
-      userMessage: user,
-      signal,
-    });
-
-    raw = "";
-    for await (const chunk of stream) {
-      if (signal?.aborted) throw new Error("Analysis aborted by user");
-      raw += chunk;
-    }
+  let raw = "";
+  for await (const chunk of stream) {
+    if (signal?.aborted) throw new Error("Analysis aborted by user");
+    raw += chunk;
   }
 
   if (!raw.trim()) {
@@ -268,7 +224,7 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
   const parsedObj = (parsed && typeof parsed === "object") ? (parsed as Record<string, any>) : {};
   const validation = CompanyIntel.safeParse({
     ...parsedObj,
-    sourceQuality,
+    sourceQuality: "ai_generated",
   });
 
   let intel: CompanyIntel;
@@ -289,7 +245,7 @@ export async function analyzeCompanySite(params: AnalyzeCompanyParams): Promise<
       jdInterviewQuestions: [],
       hrQuestions: [],
       salaryNegotiationStrategy: typeof p.salaryNegotiationStrategy === "string" && p.salaryNegotiationStrategy.trim() ? p.salaryNegotiationStrategy.trim() : null,
-      sourceQuality,
+      sourceQuality: "ai_generated",
     };
 
     if (Array.isArray(p.questions)) {
