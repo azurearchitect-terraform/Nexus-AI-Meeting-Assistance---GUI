@@ -55,7 +55,7 @@ export const OverlayTabBar = ({
   });
 
   const [showDashboardButton, setShowDashboardButton] = useState<boolean>(() => {
-    return localStorage.getItem("nexus_show_dashboard_button") === "true";
+    return localStorage.getItem("nexus_show_dashboard_button") !== "false";
   });
   const [showHistoryButton, setShowHistoryButton] = useState<boolean>(() => {
     return localStorage.getItem("nexus_show_history_button") === "true";

@@ -378,6 +378,17 @@ ${messagesContent}`;
               <BriefcaseIcon className="h-3.5 w-3.5" />
             </Button>
 
+            {/* Audio & Silence Settings */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
+              onClick={() => invoke("open_dashboard")}
+              title="Silence & Audio Settings (Opens Dashboard)"
+            >
+              <SettingsIcon className="h-3.5 w-3.5" />
+            </Button>
+
             {/* Text Color Picker */}
             <Select value={textColor} onValueChange={setTextColor}>
               <SelectTrigger className="h-7 w-[68px] text-[10px] rounded-lg border-border/50 bg-background/60 focus:ring-0 px-1.5 cursor-pointer">

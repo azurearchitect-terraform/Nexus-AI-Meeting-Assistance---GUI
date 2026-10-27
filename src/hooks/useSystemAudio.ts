@@ -54,7 +54,7 @@ const DEFAULT_VAD_CONFIG: VadConfig = {
   hop_size: 1024,
   sensitivity_rms: 0.012,
   peak_threshold: 0.035,
-  silence_chunks: 20,
+  silence_chunks: 65,
   min_speech_chunks: 7,
   pre_speech_chunks: 12,
   noise_gate_threshold: 0.003,
@@ -423,10 +423,6 @@ export function useSystemAudio() {
     if (savedVadConfig) {
       try {
         const parsed = JSON.parse(savedVadConfig);
-        if (parsed && typeof parsed.silence_chunks === 'number' && parsed.silence_chunks > 25) {
-          parsed.silence_chunks = 20;
-          safeLocalStorage.setItem("vad_config", JSON.stringify(parsed));
-        }
         setVadConfig(parsed);
       } catch (error) {
         console.error("Failed to load VAD config:", error);

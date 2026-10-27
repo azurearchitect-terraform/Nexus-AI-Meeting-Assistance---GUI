@@ -1,4 +1,5 @@
 import { AudioSelection } from "./components";
+import { VADConfigs } from "@/pages/dev/components/vad-configs";
 import { PageLayout } from "@/layouts";
 import { getPlatform } from "@/lib";
 
@@ -38,6 +39,8 @@ const Audio = () => {
       description="Configure your audio input and output devices for voice interaction and system audio capture."
     >
       <AudioSelection />
+
+      <VADConfigs />
 
       <div className="text-xs text-amber-600 bg-amber-500/10 p-3 rounded-md mb-4 space-y-2">
         <p>
