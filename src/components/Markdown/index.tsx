@@ -47,10 +47,17 @@ function StreamingTextView({ text }: { text: string }) {
   if (!text) return null;
   const lines = text.split("\n");
 
+  const visibleLines = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    if (/^[-*•–+]\s*$/.test(trimmed)) return false;
+    return true;
+  });
+
   return (
     <div className="streaming-text-view leading-relaxed whitespace-pre-wrap break-words text-foreground">
-      {lines.map((line, i) => {
-        const isLast = i === lines.length - 1;
+      {visibleLines.map((line, i) => {
+        const isLast = i === visibleLines.length - 1;
         return (
           <div key={i} className="streaming-line min-h-[1.25em]">
             {line}

@@ -4,6 +4,10 @@ import { PERSONAS, DEFAULT_SYSTEM_PROMPT } from "@/config";
  * Ultra-fast, zero-latency prompt & persona router.
  * Evaluates transcript intent locally in < 0.1ms without blocking network roundtrips.
  */
+function wordMatch(text: string, word: string): boolean {
+  return new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text);
+}
+
 export async function routePrompt(
   transcript: string,
   _selectedProvider?: { provider: string; variables: Record<string, string> }
@@ -16,9 +20,9 @@ export async function routePrompt(
 
   // 1. Amazon Leadership Principles
   if (
-    text.includes("amazon") ||
+    wordMatch(text, "amazon") ||
     text.includes("customer obsession") ||
-    text.includes("ownership") ||
+    wordMatch(text, "ownership") ||
     text.includes("dive deep") ||
     text.includes("bias for action") ||
     text.includes("earn trust") ||
@@ -32,14 +36,14 @@ export async function routePrompt(
 
   // 2. Google Interview Mode
   if (
-    text.includes("google") ||
+    wordMatch(text, "google") ||
     text.includes("distributed system") ||
     text.includes("scale to billions") ||
-    text.includes("mapreduce") ||
-    text.includes("paxos") ||
-    text.includes("raft") ||
-    text.includes("bigtable") ||
-    text.includes("spanner")
+    wordMatch(text, "mapreduce") ||
+    wordMatch(text, "paxos") ||
+    wordMatch(text, "raft") ||
+    wordMatch(text, "bigtable") ||
+    wordMatch(text, "spanner")
   ) {
     const p = PERSONAS.find((x) => x.id === "google_interview_mode");
     if (p) return { systemPrompt: p.systemPrompt, personaName: p.name };
@@ -47,7 +51,7 @@ export async function routePrompt(
 
   // 3. Meta Interview Mode
   if (
-    text.includes("meta") ||
+    wordMatch(text, "meta") ||
     text.includes("facebook") ||
     text.includes("move fast") ||
     text.includes("product sense") ||
@@ -59,11 +63,11 @@ export async function routePrompt(
 
   // 4. Microsoft Interview Mode
   if (
-    text.includes("microsoft") ||
+    wordMatch(text, "microsoft") ||
     text.includes("cloud adoption framework") ||
-    text.includes("caf") ||
+    wordMatch(text, "caf") ||
     text.includes("well-architected") ||
-    text.includes("waf") ||
+    wordMatch(text, "waf") ||
     text.includes("entra id") ||
     text.includes("azure active directory")
   ) {
@@ -74,7 +78,7 @@ export async function routePrompt(
   // 5. Executive / C-Level (CEO / CTO / Director)
   if (
     text.includes("revenue") ||
-    text.includes("roi") ||
+    wordMatch(text, "roi") ||
     text.includes("p&l") ||
     text.includes("board of directors") ||
     text.includes("market positioning") ||
@@ -89,14 +93,14 @@ export async function routePrompt(
     text.includes("enterprise architecture") ||
     text.includes("cybersecurity vision") ||
     text.includes("ai adoption") ||
-    text.includes("cto")
+    wordMatch(text, "cto")
   ) {
     const p = PERSONAS.find((x) => x.id === "cto");
     if (p) return { systemPrompt: p.systemPrompt, personaName: p.name };
   }
 
   if (
-    text.includes("kpi") ||
+    wordMatch(text, "kpi") ||
     text.includes("headcount") ||
     text.includes("organizational growth") ||
     text.includes("risk management") ||
@@ -165,7 +169,7 @@ export async function routePrompt(
 
   return {
     systemPrompt: enrichedPrompt,
-    personaName: defaultPersona?.name || "Azure Solutions Architect",
+    personaName: defaultPersona?.name || "Interview Coach",
   };
 }
 
