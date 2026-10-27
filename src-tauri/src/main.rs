@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    nexus_meeting_assistance_lib::run()
+    meeting_planner_lib::run()
 }

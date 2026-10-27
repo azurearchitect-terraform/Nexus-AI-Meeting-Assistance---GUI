@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Nexus-AI-Interview-Assistance",
+  "productName": "Meeting Planner",
   "version": "2.4.0",
-  "identifier": "com.nexus.ai",
+  "identifier": "com.meetingplanner.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Nexus-AI-Interview-Assistance",
+        "title": "Meeting Planner",
         "width": 800,
         "height": 600,
         "decorations": false,

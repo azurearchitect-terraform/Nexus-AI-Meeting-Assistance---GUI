@@ -3491,6 +3491,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "meeting-planner"
+version = "2.4.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "cidre",
+ "cpal",
+ "dotenv",
+ "dotext",
+ "futures-util",
+ "hound",
+ "image",
+ "libpulse-binding",
+ "libpulse-simple-binding",
+ "once_cell",
+ "pdf-extract",
+ "regex",
+ "reqwest 0.12.28",
+ "ringbuf",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tauri",
+ "tauri-build",
+ "tauri-nspanel",
+ "tauri-plugin-autostart",
+ "tauri-plugin-dialog",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-http",
+ "tauri-plugin-keychain",
+ "tauri-plugin-machine-uid",
+ "tauri-plugin-macos-permissions",
+ "tauri-plugin-opener",
+ "tauri-plugin-posthog",
+ "tauri-plugin-shell",
+ "tauri-plugin-sql",
+ "tauri-plugin-store",
+ "tauri-plugin-updater",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "uuid",
+ "walkdir",
+ "wasapi",
+ "xcap",
+]
+
+[[package]]
 name = "memchr"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3679,55 +3728,6 @@ name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
-
-[[package]]
-name = "nexus-ai-interview-assistance"
-version = "2.4.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "cidre",
- "cpal",
- "dotenv",
- "dotext",
- "futures-util",
- "hound",
- "image",
- "libpulse-binding",
- "libpulse-simple-binding",
- "once_cell",
- "pdf-extract",
- "regex",
- "reqwest 0.12.28",
- "ringbuf",
- "rusqlite",
- "serde",
- "serde_json",
- "sqlx",
- "tauri",
- "tauri-build",
- "tauri-nspanel",
- "tauri-plugin-autostart",
- "tauri-plugin-dialog",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-http",
- "tauri-plugin-keychain",
- "tauri-plugin-machine-uid",
- "tauri-plugin-macos-permissions",
- "tauri-plugin-opener",
- "tauri-plugin-posthog",
- "tauri-plugin-shell",
- "tauri-plugin-sql",
- "tauri-plugin-store",
- "tauri-plugin-updater",
- "tokio",
- "tokio-tungstenite",
- "tracing",
- "uuid",
- "walkdir",
- "wasapi",
- "xcap",
-]
 
 [[package]]
 name = "no_std_io2"
