@@ -47,6 +47,15 @@ function buildEnhancedSystemPrompt(baseSystemPrompt?: string): string {
   // Add markdown formatting instructions
   prompts.push(MARKDOWN_FORMATTING_INSTRUCTIONS);
 
+  // When detailed/long responses are requested, request comprehensive answers
+  // with short descriptions for scenario-based questions. Placed last so this
+  // detail instruction takes precedence over the concise line-by-line rules.
+  if (responseSettings.responseLength === "long") {
+    prompts.push(
+      "DETAILED ANSWER MODE: Provide a comprehensive, in-depth answer. For scenario-based questions, include a short description of the situation, then explain key considerations, trade-offs, alternatives, and a clear recommendation. Use well-structured paragraphs and short descriptions where helpful. Do not be overly brief or restricted to single sentences."
+    );
+  }
+
   return prompts.join(" ");
 }
 

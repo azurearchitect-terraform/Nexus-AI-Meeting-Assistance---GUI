@@ -145,7 +145,7 @@ export function Usage({
             <Line
               dataKey="requests"
               type="monotone"
-              stroke={`var(--color-requests)`}
+              stroke={`var(--color-chart-1)`}
               strokeWidth={2}
               dot={false}
             />

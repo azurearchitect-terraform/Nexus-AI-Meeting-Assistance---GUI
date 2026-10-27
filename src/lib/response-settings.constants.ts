@@ -1,5 +1,5 @@
 export interface ResponseLengthOption {
-  id: "short" | "medium" | "auto";
+  id: "short" | "medium" | "auto" | "long";
   title: string;
   description: string;
   prompt: string;
@@ -35,6 +35,14 @@ export const RESPONSE_LENGTHS: ResponseLengthOption[] = [
       "AI determines the best length based on your question's complexity",
     prompt:
       "IMPORTANT: Always deliver answers formatted line-by-line for real-time readability. Start with the direct answer on Line 1, followed by clean, concise lines tailored to the complexity of the question. For scenario-based or complex questions, provide enough detail to fully answer—do not be too brief. Never write long unbroken paragraph blocks.",
+  },
+  {
+    id: "long",
+    title: "Detailed",
+    description:
+      "Comprehensive answers with explanations and short descriptions for scenario-based questions",
+    prompt:
+      "IMPORTANT: Provide a comprehensive, detailed answer formatted line-by-line. For scenario-based questions, start with a short description of the situation, then explain key considerations, trade-offs, alternatives, and a clear recommendation. One thought per line. Include specific technical details: zone counts, percentages, timeframes, instance limits, SLA targets. Do not be overly brief or restricted to single sentences.",
   },
 ];
 
