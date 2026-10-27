@@ -16,6 +16,9 @@ import {
   DollarSign,
   ShieldAlert,
   Star,
+  ChevronDown,
+  ChevronRight,
+  Save,
 } from "lucide-react";
 import {
   CompanyIntel,
@@ -165,6 +168,14 @@ const CompanyPrep = () => {
     return val ? Number(val) : 8;
   });
   const [jdText, setJdText] = useState("");
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualCoreBusiness, setManualCoreBusiness] = useState("");
+  const [manualTechnicalLandscape, setManualTechnicalLandscape] = useState("");
+  const [manualRecentNews, setManualRecentNews] = useState("");
+  const [manualWhyItMatters, setManualWhyItMatters] = useState("");
+  const [manualGoldenFormula, setManualGoldenFormula] = useState("");
+  const [manualTechStack, setManualTechStack] = useState("");
+  const [manualFactsSaved, setManualFactsSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -225,6 +236,41 @@ const CompanyPrep = () => {
     setIntel(null);
     setUrl("");
     setJdText("");
+    setManualCoreBusiness("");
+    setManualTechnicalLandscape("");
+    setManualRecentNews("");
+    setManualWhyItMatters("");
+    setManualGoldenFormula("");
+    setManualTechStack("");
+    setManualFactsSaved(false);
+  };
+
+  const saveManualFacts = async () => {
+    const techStack = manualTechStack
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const manualIntel: CompanyIntel = {
+      name: url.trim() || "Company",
+      coreBusiness: manualCoreBusiness.trim() || null,
+      technicalLandscape: manualTechnicalLandscape.trim() || null,
+      recentNews: manualRecentNews.trim() || null,
+      whyItMatters: manualWhyItMatters.trim() || null,
+      goldenFormula: manualGoldenFormula.trim() || null,
+      techStack,
+      questions: [],
+      jdInterviewQuestions: [],
+      hrQuestions: [],
+      salaryNegotiationStrategy: null,
+      sourceQuality: "thin",
+    };
+
+    saveLatestCompanyIntel(manualIntel);
+    setIntel(manualIntel);
+    setManualFactsSaved(true);
+    setStatusText("");
+    setTimeout(() => setManualFactsSaved(false), 4000);
   };
 
   return (
@@ -297,6 +343,106 @@ const CompanyPrep = () => {
               rows={4}
               className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
+          </div>
+
+          {/* Manual Entry Fallback */}
+          <div
+            className={`rounded-2xl border border-input bg-muted/50 p-4 space-y-4 transition-all ${
+              showManualEntry ? "border-primary" : "border-border/50"
+            }`}
+          >
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowManualEntry(!showManualEntry)}>
+              {showManualEntry ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Manual Company Facts (Use when scraping fails)
+              </span>
+            </div>
+            {showManualEntry && (
+              <div className="space-y-3 pt-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground">Core Business & Revenue Drivers</label>
+                  <textarea
+                    value={manualCoreBusiness}
+                    onChange={(e) => setManualCoreBusiness(e.target.value)}
+                    disabled={loading}
+                    rows={3}
+                    placeholder="e.g. Stripe is a financial infrastructure platform for businesses..."
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground">Technical Landscape & Culture</label>
+                  <textarea
+                    value={manualTechnicalLandscape}
+                    onChange={(e) => setManualTechnicalLandscape(e.target.value)}
+                    disabled={loading}
+                    rows={3}
+                    placeholder="e.g. Ruby on Rails, React, PostgreSQL, AWS, engineering-led culture..."
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground">Recent News & Strategic Developments</label>
+                  <textarea
+                    value={manualRecentNews}
+                    onChange={(e) => setManualRecentNews(e.target.value)}
+                    disabled={loading}
+                    rows={3}
+                    placeholder="e.g. Recent Series E funding, new product launch, market expansion..."
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground">Why It Matters To You</label>
+                  <textarea
+                    value={manualWhyItMatters}
+                    onChange={(e) => setManualWhyItMatters(e.target.value)}
+                    disabled={loading}
+                    rows={3}
+                    placeholder="e.g. Strong alignment with backend experience, scale challenges..."
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground">60-90s Spoken Pitch</label>
+                  <textarea
+                    value={manualGoldenFormula}
+                    onChange={(e) => setManualGoldenFormula(e.target.value)}
+                    disabled={loading}
+                    rows={3}
+                    placeholder="e.g. I help companies scale their payment infrastructure..."
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground">Core Tech Stack (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={manualTechStack}
+                    onChange={(e) => setManualTechStack(e.target.value)}
+                    disabled={loading}
+                    placeholder="e.g. Python, React, AWS, Kubernetes, PostgreSQL, Redis..."
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={saveManualFacts}
+                  disabled={loading || (!manualCoreBusiness.trim() && !manualTechnicalLandscape.trim() && !manualRecentNews.trim())}
+                  className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] shadow-sm ${
+                    loading || (!manualCoreBusiness.trim() && !manualTechnicalLandscape.trim() && !manualRecentNews.trim())
+                      ? "bg-muted text-muted-foreground/60 disabled:opacity-50"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  }`}
+                >
+                  {manualFactsSaved ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {manualFactsSaved ? "Manual Facts Saved" : "Save Manual Company Facts"}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-2">

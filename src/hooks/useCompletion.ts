@@ -14,6 +14,8 @@ import {
   generateMessageId,
   generateRequestId,
   getResponseSettings,
+  loadStoryBank,
+  matchStoryBank,
 } from "@/lib";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -209,11 +211,40 @@ export const useCompletion = () => {
         }));
 
         try {
+          // Load story bank and match relevant STAR stories for context injection
+          const stories = loadStoryBank();
+          let enhancedSystemPrompt = systemPrompt || undefined;
+          if (stories.length > 0) {
+            const matchedStories = matchStoryBank(input, "", stories);
+            if (matchedStories.length > 0) {
+              const storyContext = matchedStories
+                .map((s) => {
+                  const parts: string[] = [];
+                  if (s.situation) parts.push(`Situation: ${s.situation}`);
+                  if (s.task) parts.push(`Task: ${s.task}`);
+                  if (s.action) parts.push(`Action: ${s.action}`);
+                  if (s.result) parts.push(`Result: ${s.result}`);
+                  if (s.metrics.length) parts.push(`Metrics: ${s.metrics.join(", ")}`);
+                  return `Story: "${s.title}"\n${parts.join("\n")}`;
+                })
+                .join("\n\n");
+
+              enhancedSystemPrompt = `${systemPrompt || ""}
+
+## Relevant STAR Stories from Your Story Bank
+Use these as concrete reference examples when answering. Match the user's situation to the most relevant story:
+
+${storyContext}
+
+When answering, weave in details from these stories where relevant to make answers concrete and evidence-based.`;
+            }
+          }
+
           // Use the fetchAIResponse function with signal
           for await (const chunk of fetchAIResponse({
             provider: usePluelyAPI ? undefined : provider,
             selectedProvider: selectedAIProvider,
-            systemPrompt: systemPrompt || undefined,
+            systemPrompt: enhancedSystemPrompt,
             history: messageHistory,
             userMessage: input,
             imagesBase64,
