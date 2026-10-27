@@ -3492,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "meeting-planner"
-version = "2.4.0"
+version = "2.5.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
