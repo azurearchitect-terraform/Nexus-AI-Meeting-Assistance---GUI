@@ -1,35 +1,27 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { PageLayout } from "@/layouts";
 import {
   FileText,
   Upload,
-  Check,
   Trash2,
   Loader2,
   Download,
-  Eye,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  addStoryItem,
-  loadStoryBank,
-  deleteStoryItem,
-  StoryBankItem,
-} from "@/lib/story-bank";
 
 import * as pdfjsLib from "pdfjs-dist";
 import mammoth from "mammoth";
 
 if (typeof window !== "undefined") {
   (pdfjsLib as any).GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.js",
+    "pdfjs-dist/build/pdf.worker.mjs?url",
     import.meta.url
   ).toString();
 }
 
-type UploadStatus = "idle" | "extracting" | "ready" | "saved" | "error";
+type UploadStatus = "idle" | "extracting" | "ready" | "error";
 
 interface UploadedResume {
   id: string;
@@ -40,17 +32,11 @@ interface UploadedResume {
 }
 
 const ResumeUpload = () => {
-const [status, setStatus] = useState<UploadStatus>("idle");
-const [extractedText, setExtractedText] = useState("");
-  const [storyTitle, setStoryTitle] = useState("");
-  const [stories, setStories] = useState<StoryBankItem[]>([]);
+  const [status, setStatus] = useState<UploadStatus>("idle");
+  const [extractedText, setExtractedText] = useState("");
   const [uploadedResumes, setUploadedResumes] = useState<UploadedResume[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
-
-  useEffect(() => {
-    setStories(loadStoryBank());
-  }, []);
 
   const extractTextFromFile = useCallback(async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
@@ -100,8 +86,8 @@ const [extractedText, setExtractedText] = useState("");
       setError("Please upload a PDF or Word (.docx/.doc) file.");
       return;
     }
-    setError(null);
 
+    setError(null);
     setStatus("extracting");
     setIsExtracting(true);
 
@@ -111,55 +97,21 @@ const [extractedText, setExtractedText] = useState("");
       setStatus("ready");
       setIsExtracting(false);
 
-      const existing = uploadedResumes.find((r) => r.fileName === selectedFile.name);
-      if (!existing) {
-        setUploadedResumes((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            fileName: selectedFile.name,
-            fileType: selectedFile.type,
-            extractedText: text,
-            uploadedAt: Date.now(),
-          },
-        ]);
-      }
+      setUploadedResumes((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          extractedText: text,
+          uploadedAt: Date.now(),
+        },
+      ]);
     } catch (err: any) {
       setError(err.message || "Failed to extract text from file.");
       setStatus("idle");
       setIsExtracting(false);
     }
-  };
-
-  const handleSaveToStory = async () => {
-    if (!extractedText.trim() || !storyTitle.trim()) return;
-
-    setStatus("saved");
-
-    const story: Omit<StoryBankItem, "id" | "createdAt"> = {
-      title: storyTitle.trim(),
-      summary: extractedText.trim().slice(0, 200),
-      situation: "",
-      task: "",
-      action: "",
-      result: "",
-      metrics: [],
-      tags: ["resume", "uploaded", storyTitle.trim().split(" ")[0]],
-      roleFocus: "mixed",
-    };
-
-    addStoryItem(story);
-    setStories(loadStoryBank());
-    setStoryTitle("");
-    setExtractedText("");
-    setStatus("idle");
-
-    setTimeout(() => setStatus("idle"), 2000);
-  };
-
-  const handleDeleteStory = (id: string) => {
-    deleteStoryItem(id);
-    setStories(loadStoryBank());
   };
 
   const handleDownloadResume = (resume: UploadedResume) => {
@@ -178,8 +130,8 @@ const [extractedText, setExtractedText] = useState("");
 
   return (
     <PageLayout
-      title="Resume & Story Upload"
-      description="Upload your resume (PDF or Word) to build your story bank for 'Tell me about yourself' answers."
+      title="Resume Upload"
+      description="Upload your resume (PDF or Word) to extract text and save it for interview preparation."
     >
       <div className="max-w-5xl mx-auto py-6 space-y-8">
         {/* Upload Card */}
@@ -187,11 +139,11 @@ const [extractedText, setExtractedText] = useState("");
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary" />
-              Upload Resume or Story Document
+              Upload Resume
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Supports PDF (.pdf) and Word (.docx, .doc). Extracted text will be saved to your
-              Story Bank and used to answer "Tell me about yourself" and other personal questions.
+              Supports PDF (.pdf) and Word (.docx, .doc). Extracted text is saved
+              independently and can be used for interview preparation.
             </p>
           </CardHeader>
           <CardContent>
@@ -206,7 +158,7 @@ const [extractedText, setExtractedText] = useState("");
                 />
                 <label
                   htmlFor="resume-upload"
-                  className="flex flex-col items-center gap-3 cursor-pointer"
+                  className="flex flex-col items-center gap-2 cursor-pointer"
                 >
                   <div className="flex flex-col items-center gap-2">
                     {isExtracting ? (
@@ -235,31 +187,14 @@ const [extractedText, setExtractedText] = useState("");
 
               {status === "ready" && extractedText && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-muted-foreground">
-                      Story Title
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      Used as the story title in your Story Bank
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    value={storyTitle}
-                    onChange={(e) => setStoryTitle(e.target.value)}
-                    placeholder="e.g. Software Engineer at Tech Corp - 8 Years Experience"
-                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                  />
-
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-muted-foreground">
                       Extracted Text Preview
                     </label>
                     <textarea
                       value={extractedText}
-                      onChange={(e) => setExtractedText(e.target.value)}
-                      rows={8}
                       readOnly
+                      rows={10}
                       className="w-full rounded-xl border border-input bg-muted/50 px-4 py-3 text-sm font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors resize-none"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -267,23 +202,39 @@ const [extractedText, setExtractedText] = useState("");
                     </p>
                   </div>
 
-                  <Button
-                    onClick={handleSaveToStory}
-                    disabled={!storyTitle.trim()}
-                    className="w-full bg-primary hover:bg-primary/90"
-                  >
-                    {(status as string) === "saved" ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Saved to Story Bank
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Save to Story Bank
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        const blob = new Blob([extractedText], {
+                          type: "text/plain",
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "resume_extracted.txt";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Extracted Text
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setExtractedText("");
+                        setStatus("idle");
+                        setError(null);
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -296,7 +247,7 @@ const [extractedText, setExtractedText] = useState("");
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Download className="h-5 w-5 text-primary" />
-                Previously Uploaded Resumes
+                Previously Uploaded Resumes ({uploadedResumes.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -347,59 +298,6 @@ const [extractedText, setExtractedText] = useState("");
             </CardContent>
           </Card>
         )}
-
-        {/* Story Bank Items */}
-        <Card className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" />
-              Your Story Bank ({stories.length})
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Stories are automatically injected into AI answers when relevant.
-            </p>
-          </CardHeader>
-          <CardContent>
-            {stories.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No stories yet. Upload a resume above to get started.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {stories.map((story) => (
-                  <div
-                    key={story.id}
-                    className="px-4 py-3 rounded-xl border border-border bg-muted/50"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-foreground">
-                          {story.title}
-                        </p>
-                        {story.summary && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {story.summary}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Tags: {story.tags.join(", ")}
-                        </p>
-                      </div>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        onClick={() => handleDeleteStory(story.id)}
-                        className="h-8 w-8"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </PageLayout>
   );
