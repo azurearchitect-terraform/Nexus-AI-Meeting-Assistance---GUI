@@ -11,6 +11,8 @@ import {
   MessageSquareTextIcon,
   Briefcase,
   Sparkles,
+  FileText,
+  BriefcaseIcon,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -36,6 +38,16 @@ export const useMenuItems = () => {
       icon: Sparkles,
       label: "Interview Prep",
       href: "/interview-prep",
+    },
+    {
+      icon: FileText,
+      label: "Resume Upload",
+      href: "/resume-upload",
+    },
+    {
+      icon: BriefcaseIcon,
+      label: "Story Bank",
+      href: "/story-bank",
     },
     {
       icon: MessagesSquare,

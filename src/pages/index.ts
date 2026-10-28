@@ -11,3 +11,5 @@ export { default as Screenshot } from "./screenshot";
 export { default as Responses } from "./responses";
 export { default as CompanyPrep } from "./company-prep";
 export { default as InterviewPrep } from "./interview-prep";
+export { default as ResumeUpload } from "./resume-upload";
+export { default as StoryBank } from "./story-bank";

@@ -13,6 +13,8 @@ import {
   Responses,
   CompanyPrep,
   InterviewPrep,
+  ResumeUpload,
+  StoryBank,
 } from "@/pages";
 import { DashboardLayout } from "@/layouts";
 
@@ -34,6 +36,8 @@ export default function AppRoutes() {
           <Route path="/audio" element={<Audio />} />
           <Route path="/responses" element={<Responses />} />
           <Route path="/dev-space" element={<DevSpace />} />
+          <Route path="/resume-upload" element={<ResumeUpload />} />
+          <Route path="/story-bank" element={<StoryBank />} />
         </Route>
       </Routes>
     </Router>
